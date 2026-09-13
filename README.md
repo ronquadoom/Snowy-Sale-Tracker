@@ -1,15 +1,20 @@
-# Snowy'sz Live Sales Tracker
+# Snowy'sz Live Limited Sales Tracker
 
-A dark, Roblox-style live sales dashboard for Snowy'sz community `370302186`.
+A SkyBlock-themed live dashboard for Snowy'sz community `370302186` that tracks **only limited UGC sales** streamed from the real Roblox **Revenue › Sales** API. It never invents sales, buyers, prices, timestamps, or revenue.
 
-## Data modes
+## Data mode — live API only
 
-The dashboard never invents sales. It supports two real-data modes:
+The Node backend (`server.js`) polls Roblox's group transactions endpoint
+(`economy.roblox.com/v2/groups/370302186/transactions`, `transactionType=Sale`,
+latest 100) and verifies every candidate sale against the public asset-details
+endpoint. Only sales whose assets are `IsLimited` or `IsLimitedUnique` are
+returned; normal (non-limited) sales are dropped entirely. Asset details are
+cached for ten minutes so polling stays fast. The browser refreshes the feed
+every 60 seconds. CSV import was removed.
 
-1. **Live API mode** — the Node server polls Roblox's group transactions endpoint and the browser refreshes the feed every 60 seconds.
-2. **CSV mode** — export **Sales of Goods** from Roblox **Revenue → Sales** and click **IMPORT SALES CSV** in the dashboard.
-
-Normal/non-limited and limited sales are both retained. The default view is **NON-LIMITED**; use **All** or **LIMITEDS** to change the view.
+The dashboard shows `LIVE REQUIRED` (no cookie configured) or `API ERROR`
+(session rejected / Roblox unreachable) and stays empty until real limited
+sales arrive from the API.
 
 ## Run locally
 
@@ -17,25 +22,24 @@ Normal/non-limited and limited sales are both retained. The default view is **NO
 npm start
 ```
 
-The server binds to `0.0.0.0` and uses port `4173` locally, or the `PORT` supplied by Render.
-
-Without live credentials configured, the app stays in `CSV REQUIRED` mode and shows no fake records.
+The server binds to `0.0.0.0` on port `4173` locally (or the `PORT` supplied by Render).
 
 ## Enable live mode on Render
 
-1. Create a Render Web Service from this repository.
-2. Use the included `render.yaml`, or set:
-   - Build command: `npm install`
-   - Start command: `npm start`
-3. Add these environment variables in Render's private Environment settings:
+1. Create a Render Web Service from this repository (the included `render.yaml` is preconfigured).
+2. Add the private environment variables in Render's Environment settings:
    - `ROBLOX_GROUP_ID=370302186`
    - `ROBLOX_COOKIE` = the value of an authorized Roblox session cookie, without the `Cookie:` prefix
-4. Redeploy and open the site. The status changes to `LIVE API` only after Roblox returns real transactions.
-5. Verify the deployment before sharing it:
-   - Open `https://YOUR-RENDER-URL.onrender.com/api/health` and confirm `liveSalesConfigured: true`.
-   - Open `/api/sales` and confirm `configured: true`, `connected: true`, and a `sales` array.
-   - A `401` or `403` means the Roblox session is invalid or the account lacks the group's View group revenue permission.
+3. Redeploy and open the site. The status pill changes to `LIVE API` only after Roblox returns real limited transactions.
 
-The dashboard polls once per minute. Roblox can still delay or rate-limit transaction reporting, so this is near-live rather than a guaranteed exact-one-minute delivery.
+### Verify the deployment
 
-Never put the Roblox cookie in this repository, browser JavaScript, screenshots, or chat. Use a dedicated authorized account, keep the variable private, and rotate it if it is ever exposed. If the variable is missing or Roblox denies access, the dashboard stays empty instead of showing placeholder sales.
+- `GET /api/health` → `{ "ok": true, "liveSalesConfigured": true }` once the cookie is set.
+- `GET /api/sales` → `status: "live"`, `connected: true`, and a `sales` array containing only limited items.
+- `status: "api-error"` with a 401/403 means the session is invalid or the account lacks the group's *View group revenue* permission.
+
+Roblox can delay or rate-limit transaction reporting, so this is near-live rather than a guaranteed exact-one-minute delivery.
+
+## Security
+
+Never put the Roblox cookie in this repository, in browser JavaScript, in screenshots, or in chat. Use a dedicated authorized account, keep the variable private in Render, and rotate it if it is ever exposed. If the variable is missing or Roblox denies access, the dashboard stays empty instead of showing placeholder sales.
