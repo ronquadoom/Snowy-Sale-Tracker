@@ -1,5 +1,6 @@
 const iconPaths = {
   radio: '<path d="M5 8.5a10 10 0 0 1 14 0M8 11.5a6 6 0 0 1 8 0M12 15h.01"/><circle cx="12" cy="15" r="1"/>',
+  upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
   'bar-chart': '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   'trending-up': '<path d="m3 17 6-6 4 4 8-8M15 7h6v6"/>',
   zap: '<path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"/>',
@@ -33,7 +34,6 @@ const palette = [
   ['#8ba6ff', 'rgba(79,116,255,.26)', '✦'],
   ['#9da6b8', 'rgba(117,143,190,.22)', '✶'],
 ];
-const buyers = ['@snowfall', '@aurorafrost', '@icecube', '@cloudyvoid', '@starrysnow', '@frostdaze', '@auroracode', '@winterbyte', '@icylogic', '@moonlit'];
 
 function titleFromSlug(slug, index) {
   const title = slug.replace(/-/g, ' ');
@@ -47,12 +47,6 @@ function itemFromLink(entry, index) {
   const [color, glow, glyph] = palette[index % palette.length];
   const isFace = /shades|face|emote|troll/i.test(lower);
   const isLimited = /limited|limitted/i.test(lower);
-  const isCheap = /cheap/i.test(lower);
-  const isSparkle = /sparkle/i.test(lower);
-  const isSkybox = /skybox/i.test(lower);
-  const isRainbow = /rainbow/i.test(lower);
-  const amount = isCheap ? 65 : isLimited ? 95 : 85;
-  const ageMinutes = index < 9 ? index + 1 : 10 + Math.floor(index * 1.7);
   return {
     id: `${assetId}-${index}`,
     name,
@@ -60,75 +54,185 @@ function itemFromLink(entry, index) {
     slug,
     url: `https://www.roblox.com/catalog/${assetId}/${slug}`,
     type: 'ASSET',
-    flag: index === 0 ? 'NEW' : '',
     category: isFace ? 'face' : 'head',
     limited: isLimited,
-    cheap: isCheap,
-    sparkle: isSparkle,
-    skybox: isSkybox,
-    rainbow: isRainbow,
-    daily: true,
-    amount,
-    buyer: buyers[index % buyers.length],
-    age: `${ageMinutes}m ago`,
-    sales: Math.max(1, 8 - Math.floor(index / 18)),
-    glyph,
+    cheap: /cheap/i.test(lower),
+    sparkle: /sparkle/i.test(lower),
+    skybox: /skybox/i.test(lower),
     color,
     glow,
-    hot: index === 0,
+    glyph,
   };
 }
 
-const feedItems = assetLinks.map(itemFromLink);
-const totalEntries = feedItems.length;
-const state = { filter: 'nonlimited', query: '', showAll: false, connected: true };
+const catalogItems = assetLinks.map(itemFromLink);
+const catalogById = new Map(catalogItems.map((item) => [String(item.assetId), item]));
+const catalogNonLimitedCount = catalogItems.filter((item) => !item.limited).length;
+
+const state = { filter: 'nonlimited', query: '', showAll: false };
+let verifiedSales = loadSavedSales();
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+function loadSavedSales() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('snowysz-verified-sales'));
+    return Array.isArray(saved) ? saved : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveSales() {
+  try {
+    localStorage.setItem('snowysz-verified-sales', JSON.stringify(verifiedSales));
+  } catch (error) {
+    // The feed still works for the current session if storage is unavailable.
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+}
+
+function formatRobux(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return 'R$—';
+  return `R$${Number(value).toLocaleString('en-US')}`;
+}
+
+function parseRobux(value) {
+  if (value === null || value === undefined || String(value).trim() === '') return null;
+  const cleaned = String(value).replace(/[^0-9.,-]/g, '').replace(/,(?=\d{3}(?:\D|$))/g, '');
+  const number = Number(cleaned.replace(',', '.'));
+  return Number.isFinite(number) ? number : null;
+}
+
+function normalizeHeader(value) {
+  return String(value || '').replace(/^\uFEFF/, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    const next = text[index + 1];
+    if (character === '"' && quoted && next === '"') { field += '"'; index += 1; continue; }
+    if (character === '"') { quoted = !quoted; continue; }
+    if (character === ',' && !quoted) { row.push(field); field = ''; continue; }
+    if ((character === '\n' || character === '\r') && !quoted) {
+      if (character === '\r' && next === '\n') index += 1;
+      row.push(field); field = '';
+      if (row.some((cell) => cell.trim() !== '')) rows.push(row);
+      row = [];
+      continue;
+    }
+    field += character;
+  }
+  if (field.length || row.length) { row.push(field); if (row.some((cell) => cell.trim() !== '')) rows.push(row); }
+  return rows;
+}
+
+function headerIndex(headers, names) {
+  return headers.findIndex((header) => names.includes(normalizeHeader(header)));
+}
+
+function parseSalesCsv(text) {
+  const rows = parseCsv(text);
+  if (rows.length < 2) throw new Error('The CSV has no sale rows.');
+  const headers = rows[0];
+  const columns = {
+    buyer: headerIndex(headers, ['buyeruserid', 'buyerid', 'buyer']),
+    date: headerIndex(headers, ['saledatetime', 'saledate', 'date']),
+    location: headerIndex(headers, ['salelocation', 'location']),
+    universe: headerIndex(headers, ['universe']),
+    assetId: headerIndex(headers, ['assetid', 'itemid']),
+    assetName: headerIndex(headers, ['assetname', 'itemname', 'name']),
+    assetType: headerIndex(headers, ['assettype', 'itemtype', 'type']),
+    holdStatus: headerIndex(headers, ['holdstatus', 'status']),
+    revenue: headerIndex(headers, ['revenue']),
+    price: headerIndex(headers, ['price']),
+  };
+  if (columns.assetId < 0 && columns.assetName < 0) throw new Error('Asset ID or Asset Name column was not found.');
+  const get = (cells, index) => index >= 0 ? String(cells[index] || '').trim() : '';
+  return rows.slice(1).map((cells, index) => {
+    const assetId = get(cells, columns.assetId);
+    const assetName = get(cells, columns.assetName) || catalogById.get(assetId)?.name || `Unknown item ${index + 1}`;
+    const catalogItem = catalogById.get(assetId);
+    return {
+      id: `${assetId || assetName}-${index}-${Date.now()}`,
+      buyer: get(cells, columns.buyer),
+      date: get(cells, columns.date),
+      location: get(cells, columns.location) || 'Roblox',
+      universe: get(cells, columns.universe),
+      assetId,
+      assetName,
+      assetType: get(cells, columns.assetType) || catalogItem?.type || 'ASSET',
+      holdStatus: get(cells, columns.holdStatus),
+      revenue: parseRobux(get(cells, columns.revenue)),
+      price: parseRobux(get(cells, columns.price)),
+    };
+  }).filter((record) => record.assetId || record.assetName);
+}
+
+function itemMeta(record) {
+  const known = catalogById.get(String(record.assetId));
+  if (known) return known;
+  const lower = String(record.assetName || '').toLowerCase();
+  const [color, glow, glyph] = palette[Math.abs(String(record.assetId || record.assetName).length) % palette.length];
+  return {
+    id: record.assetId || record.assetName,
+    assetId: record.assetId,
+    name: record.assetName,
+    url: record.assetId ? `https://www.roblox.com/catalog/${record.assetId}` : 'https://www.roblox.com/catalog',
+    category: /shades|face|emote|troll/i.test(lower) ? 'face' : 'head',
+    limited: /limited|limitted/i.test(lower),
+    cheap: /cheap/i.test(lower),
+    sparkle: /sparkle/i.test(lower),
+    skybox: /skybox/i.test(lower),
+    color,
+    glow,
+    glyph,
+  };
+}
+
+function isNonLimited(record) {
+  return !itemMeta(record).limited;
+}
+
+function isInFilter(record) {
+  const item = itemMeta(record);
+  const query = state.query.toLowerCase();
+  const queryMatch = !query || `${record.assetName} ${record.assetId} ${record.buyer} ${record.location}`.toLowerCase().includes(query);
+  if (!queryMatch) return false;
+  if (state.filter === 'nonlimited') return !item.limited;
+  if (state.filter === 'limited') return item.limited;
+  if (state.filter === 'cheap') return item.cheap;
+  if (state.filter === 'head') return item.category === 'head';
+  if (state.filter === 'face') return item.category === 'face';
+  if (state.filter === 'sparkle') return item.sparkle;
+  if (state.filter === 'skybox') return item.skybox;
+  return true;
+}
 
 function showToast(message) {
   const toast = $('#toast');
   $('#toastMessage').textContent = message;
   toast.classList.add('show');
   clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.remove('show'), 2400);
+  showToast.timer = setTimeout(() => toast.classList.remove('show'), 2800);
 }
 
-function filterCounts() {
-  return {
-    all: totalEntries,
-    nonlimited: feedItems.filter((item) => !item.limited).length,
-    cheap: feedItems.filter((item) => item.cheap).length,
-    limited: feedItems.filter((item) => item.limited).length,
-    head: feedItems.filter((item) => item.category === 'head').length,
-    face: feedItems.filter((item) => item.category === 'face').length,
-    sparkle: feedItems.filter((item) => item.sparkle).length,
-    skybox: feedItems.filter((item) => item.skybox).length,
-  };
-}
-
-function updateCounts() {
-  const counts = filterCounts();
-  $('#totalEntries').textContent = totalEntries;
-  $('#filteredTotal').textContent = counts.nonlimited;
-  $('#salesCount').textContent = counts.nonlimited;
-  $$('.feed-filter').forEach((button) => {
-    const count = button.querySelector('b');
-    if (count) count.textContent = counts[button.dataset.filter] ?? 0;
-  });
-}
-
-function matches(item) {
-  const q = state.query.toLowerCase();
-  const searchMatch = !q || `${item.name} ${item.category} ${item.buyer}`.toLowerCase().includes(q);
-  let filterMatch = true;
-  if (state.filter === 'nonlimited') filterMatch = !item.limited;
-  if (state.filter === 'cheap') filterMatch = item.cheap;
-  if (state.filter === 'limited') filterMatch = item.limited;
-  if (state.filter === 'head') filterMatch = item.category === 'head';
-  if (state.filter === 'face') filterMatch = item.category === 'face';
-  if (state.filter === 'sparkle') filterMatch = item.sparkle;
-  if (state.filter === 'skybox') filterMatch = item.skybox;
-  return searchMatch && filterMatch;
+function relativeTime(value) {
+  const time = Date.parse(value);
+  if (!Number.isFinite(time)) return '—';
+  const seconds = Math.max(0, Math.floor((Date.now() - time) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
 }
 
 function fallbackThumb(item, small = false) {
@@ -136,25 +240,71 @@ function fallbackThumb(item, small = false) {
 }
 
 function thumbMarkup(item, small = false) {
-  return `${fallbackThumb(item, small)}<img data-thumb-id="${item.assetId}" alt="${item.name}" loading="lazy" onerror="this.remove()" />`;
+  if (!item.assetId) return fallbackThumb(item, small);
+  return `${fallbackThumb(item, small)}<img data-thumb-id="${escapeHtml(item.assetId)}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.remove()" />`;
 }
 
-function saleMarkup(item, index) {
-  return `<article class="sale-row ${item.hot ? 'hot' : ''}" style="animation-delay:${index * 18}ms" data-item-url="${item.url}" tabindex="0" role="link" aria-label="Open ${item.name} on Roblox">
+function saleMarkup(record, index) {
+  const item = itemMeta(record);
+  const amount = record.revenue ?? record.price;
+  const buyer = record.buyer ? `Buyer ${record.buyer}` : 'Buyer ID unavailable';
+  const url = item.url || `https://www.roblox.com/catalog/${record.assetId}`;
+  return `<article class="sale-row ${index === 0 ? 'hot' : ''}" style="animation-delay:${index * 18}ms" data-item-url="${escapeHtml(url)}" tabindex="0" role="link" aria-label="Open ${escapeHtml(record.assetName)} on Roblox">
     <div class="sale-thumb" style="--thumb-color:${item.color};--thumb-glow:${item.glow}">${thumbMarkup(item)}</div>
     <div class="sale-main">
-      <div class="sale-title-line"><strong>${item.name}</strong><span class="asset-tag">${item.type}</span><span class="market-tag ${item.limited ? 'limited-tag' : 'nonlimited-tag'}">${item.limited ? 'LIMITED' : 'NON-LIMITED'}</span>${item.flag ? `<span class="new-tag">${item.flag}</span>` : ''}</div>
-      <div class="sale-meta"><span class="source">Snowy'sz</span><span class="arrow">→</span><span class="buyer">${item.buyer}</span></div>
+      <div class="sale-title-line"><strong>${escapeHtml(record.assetName)}</strong><span class="asset-tag">${escapeHtml(record.assetType || 'ASSET')}</span><span class="market-tag ${item.limited ? 'limited-tag' : 'nonlimited-tag'}">${item.limited ? 'LIMITED' : 'NON-LIMITED'}</span></div>
+      <div class="sale-meta"><span class="source">${escapeHtml(record.location || 'Roblox')}</span><span class="arrow">→</span><span class="buyer">${escapeHtml(buyer)}</span></div>
     </div>
-    <div class="sale-value">+R$${item.amount}<small>${item.age}</small></div>
+    <div class="sale-value">${formatRobux(amount)}<small>${relativeTime(record.date)}</small></div>
   </article>`;
 }
 
+function getFilterCounts() {
+  const count = (test) => verifiedSales.filter(test).length;
+  return {
+    all: verifiedSales.length,
+    nonlimited: count((record) => isNonLimited(record)),
+    limited: count((record) => !isNonLimited(record)),
+    cheap: count((record) => itemMeta(record).cheap),
+    head: count((record) => itemMeta(record).category === 'head'),
+    face: count((record) => itemMeta(record).category === 'face'),
+    sparkle: count((record) => itemMeta(record).sparkle),
+    skybox: count((record) => itemMeta(record).skybox),
+  };
+}
+
+function updateCounts() {
+  const counts = getFilterCounts();
+  $('#salesCount').textContent = catalogNonLimitedCount;
+  $('#totalEntries').textContent = verifiedSales.length;
+  $('#verifiedSalesCount').textContent = counts.nonlimited;
+  $$('.feed-filter').forEach((button) => {
+    const count = button.querySelector('b');
+    if (count) count.textContent = counts[button.dataset.filter] ?? 0;
+  });
+  updateVerifiedStats();
+}
+
+function updateVerifiedStats() {
+  const nonLimited = verifiedSales.filter((record) => isNonLimited(record));
+  const revenueValues = nonLimited.map((record) => record.revenue).filter((value) => Number.isFinite(value));
+  const revenue = revenueValues.reduce((sum, value) => sum + value, 0);
+  $('#realRevenue').textContent = revenueValues.length ? formatRobux(revenue) : 'R$—';
+  const dates = nonLimited.map((record) => Date.parse(record.date)).filter(Number.isFinite);
+  const latest = dates.length ? Math.max(...dates) : null;
+  $('#lastSale').textContent = latest ? relativeTime(new Date(latest).toISOString()) : '—';
+  const oneHourAgo = Date.now() - 3600000;
+  const recent = nonLimited.filter((record) => Date.parse(record.date) >= oneHourAgo);
+  const recentRevenue = recent.map((record) => record.revenue).filter((value) => Number.isFinite(value));
+  $('#paceRate').innerHTML = recent.length ? `${recent.length}<small>/hr</small>` : '—';
+  $('#averageOrder').textContent = recentRevenue.length ? formatRobux(recentRevenue.reduce((sum, value) => sum + value, 0) / recentRevenue.length) : 'R$—';
+  $('#entryCount').textContent = state.filter === 'all' && !state.query ? verifiedSales.length : verifiedSales.filter(isInFilter).length;
+}
+
 function renderFeed() {
-  const filtered = feedItems.filter(matches);
-  const feedLabels = { all: 'ALL ITEMS', nonlimited: 'NON-LIMITED SALES', limited: 'LIMITED ITEMS', cheap: 'CHEAP ITEMS', head: 'HEAD ACCESSORIES', face: 'FACE / EMOTES', sparkle: 'SPARKLE SERIES', skybox: 'SKYBOX ITEMS' };
-  $('#feedEyebrow').textContent = `SNOWY'SZ / ${feedLabels[state.filter] || 'SALE EVENTS'}`;
+  const filtered = verifiedSales.filter(isInFilter);
   const visible = state.showAll ? filtered : filtered.slice(0, 9);
+  const hasSales = verifiedSales.length > 0;
   $('#saleList').innerHTML = visible.map(saleMarkup).join('');
   $('#saleList').hidden = visible.length === 0;
   $('#noResults').hidden = visible.length !== 0;
@@ -162,47 +312,107 @@ function renderFeed() {
   $('#filteredTotal').textContent = filtered.length;
   $('#loadMoreButton').hidden = filtered.length <= 9;
   $('#loadMoreButton').innerHTML = state.showAll ? `SHOW LESS ${iconSvg('chevron-down')}` : `LOAD MORE ${iconSvg('chevron-down')}`;
-  $('#entryCount').textContent = state.query || state.filter !== 'all' ? filtered.length : totalEntries;
+  const feedLabels = { all: 'ALL VERIFIED SALES', nonlimited: 'NON-LIMITED SALES', limited: 'LIMITED SALES', cheap: 'CHEAP ITEM SALES', head: 'HEAD ACCESSORY SALES', face: 'FACE / EMOTE SALES', sparkle: 'SPARKLE SERIES SALES', skybox: 'SKYBOX ITEM SALES' };
+  $('#feedEyebrow').textContent = `SNOWY'SZ / ${feedLabels[state.filter] || 'VERIFIED SALES'}`;
+  if (hasSales && visible.length === 0) {
+    $('#noResultsTitle').textContent = 'No matching verified sales';
+    $('#noResultsText').textContent = 'Try a different filter or search term.';
+  } else {
+    $('#noResultsTitle').textContent = 'No verified sales loaded';
+    $('#noResultsText').textContent = 'Export Sales of Goods from Roblox Revenue › Sales, then import the CSV here.';
+  }
   attachCatalogLinks('.sale-row');
   loadThumbnails();
+  updateVerifiedStats();
 }
 
 function renderTopItems() {
-  const top = feedItems.filter((item) => !item.limited).sort((a, b) => b.sales - a.sales).slice(0, 6);
-  $('#topItems').innerHTML = top.map((item, index) => `<div class="top-item" data-item-url="${item.url}" tabindex="0" role="link">
-    <span class="top-rank">${index + 1}</span><div class="top-thumb" style="--thumb-color:${item.color}">${thumbMarkup(item, true)}</div>
-    <div class="top-item-copy"><strong>${item.name}</strong><span>SNOWY'SZ</span></div><div class="top-item-value">R$${item.amount}<small>${item.sales} sold</small></div>
+  const grouped = new Map();
+  verifiedSales.filter(isNonLimited).forEach((record) => {
+    const key = String(record.assetId || record.assetName);
+    const existing = grouped.get(key) || { item: itemMeta(record), name: record.assetName, count: 0, revenue: 0 };
+    existing.count += 1;
+    if (Number.isFinite(record.revenue)) existing.revenue += record.revenue;
+    grouped.set(key, existing);
+  });
+  const top = [...grouped.values()].sort((a, b) => b.count - a.count || b.revenue - a.revenue).slice(0, 6);
+  if (!top.length) {
+    $('#topItems').innerHTML = '<div class="rail-empty">No verified non-limited sales yet</div>';
+    return;
+  }
+  $('#topItems').innerHTML = top.map((entry, index) => `<div class="top-item" data-item-url="${escapeHtml(entry.item.url)}" tabindex="0" role="link">
+    <span class="top-rank">${index + 1}</span><div class="top-thumb" style="--thumb-color:${entry.item.color}">${thumbMarkup(entry.item, true)}</div>
+    <div class="top-item-copy"><strong>${escapeHtml(entry.name)}</strong><span>NON-LIMITED · ${entry.count} VERIFIED</span></div><div class="top-item-value">${formatRobux(entry.revenue)}<small>${entry.count} sold</small></div>
   </div>`).join('');
   attachCatalogLinks('.top-item');
   loadThumbnails();
 }
 
-function attachCatalogLinks(selector) {
-  $$(selector).forEach((row) => {
-    if (row.dataset.bound) return;
-    row.dataset.bound = 'true';
-    const open = () => window.open(row.dataset.itemUrl, '_blank', 'noopener,noreferrer');
-    row.addEventListener('click', open);
-    row.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } });
+function renderPace() {
+  const recent = verifiedSales.filter((record) => isNonLimited(record) && Number.isFinite(Date.parse(record.date)) && Date.now() - Date.parse(record.date) <= 600000);
+  const graph = $('#paceGraph');
+  if (!recent.length) {
+    graph.className = 'pace-graph is-empty';
+    graph.innerHTML = '<span class="graph-empty">Import verified sales to plot pace</span>';
+    return;
+  }
+  const buckets = Array(10).fill(0);
+  recent.forEach((record) => {
+    const age = Math.floor((Date.now() - Date.parse(record.date)) / 60000);
+    buckets[Math.min(9, Math.max(0, age))] += 1;
   });
+  const max = Math.max(...buckets, 1);
+  graph.className = 'pace-graph';
+  graph.innerHTML = `<div class="pace-bars">${buckets.reverse().map((value) => `<i class="pace-bar" style="height:${value ? Math.max(12, value / max * 100) : 3}%" title="${value} verified sale${value === 1 ? '' : 's'}"></i>`).join('')}</div>`;
 }
 
-async function loadThumbnails() {
-  const nodes = $$('[data-thumb-id]');
-  const ids = [...new Set(nodes.map((node) => node.dataset.thumbId))];
-  for (let start = 0; start < ids.length; start += 50) {
-    const batch = ids.slice(start, start + 50);
-    try {
-      const response = await fetch(`https://thumbnails.roblox.com/v1/assets?assetIds=${batch.join(',')}&returnPolicy=PlaceHolder&size=150x150&format=Png&isCircular=false`);
-      if (!response.ok) continue;
-      const payload = await response.json();
-      (payload.data || []).forEach((asset) => {
-        if (!asset.imageUrl) return;
-        $$(`[data-thumb-id="${asset.targetId}"]`).forEach((image) => { image.src = asset.imageUrl; });
-      });
-    } catch (error) {
-      // The gradient glyph remains as a local fallback if Roblox blocks the request.
-    }
+function renderRevenue() {
+  const nonLimited = verifiedSales.filter(isNonLimited);
+  const revenueValues = nonLimited.map((record) => record.revenue).filter((value) => Number.isFinite(value));
+  const total = revenueValues.reduce((sum, value) => sum + value, 0);
+  if (!nonLimited.length) {
+    $('#revenueList').innerHTML = '<div class="rail-empty">No verified revenue loaded</div>';
+    return;
+  }
+  $('#revenueList').innerHTML = `<div class="revenue-row"><span class="revenue-name"><i class="revenue-dot cyan"></i> Non-limited sales</span><strong>${revenueValues.length ? formatRobux(total) : 'R$—'}<small>${nonLimited.length} verified</small></strong></div>`;
+}
+
+function renderAll() {
+  updateCounts();
+  renderFeed();
+  renderTopItems();
+  renderPace();
+  renderRevenue();
+  const hasData = verifiedSales.length > 0;
+  const connection = $('#connectionToggle');
+  connection.classList.toggle('waiting', !hasData);
+  connection.classList.toggle('loaded', hasData);
+  connection.setAttribute('aria-pressed', String(hasData));
+  $('#connectionLabel').textContent = hasData ? 'CSV LOADED' : 'CSV REQUIRED';
+  connection.querySelector('[data-icon]').innerHTML = iconSvg(hasData ? 'check' : 'upload');
+  document.querySelector('.status-dot').style.background = hasData ? 'var(--green)' : 'var(--muted-2)';
+}
+
+function openImporter() {
+  $('#salesFileInput').click();
+}
+
+async function handleFile(file) {
+  if (!file) return;
+  try {
+    const records = parseSalesCsv(await file.text());
+    if (!records.length) throw new Error('No sale rows were found in that file.');
+    verifiedSales = records;
+    saveSales();
+    state.filter = 'nonlimited';
+    state.query = '';
+    state.showAll = false;
+    $('#searchInput').value = '';
+    $$('.feed-filter').forEach((button) => button.classList.toggle('active', button.dataset.filter === 'nonlimited'));
+    renderAll();
+    showToast(`Loaded ${records.length} verified sale${records.length === 1 ? '' : 's'} from Roblox`);
+  } catch (error) {
+    showToast(error.message || 'Could not read that CSV');
   }
 }
 
@@ -226,28 +436,13 @@ $('#loadMoreButton').addEventListener('click', () => {
   renderFeed();
 });
 
-$('#refreshButton').addEventListener('click', () => {
-  const icon = $('#refreshButton').querySelector('[data-icon]');
-  icon.classList.add('spinning');
-  setTimeout(() => icon.classList.remove('spinning'), 650);
-  $('#lastSale').textContent = 'now';
-  showToast(`Feed synced · ${filterCounts().nonlimited} non-limited items tracked`);
-  loadThumbnails();
-});
-
-$('#connectionToggle').addEventListener('click', () => {
-  state.connected = !state.connected;
-  const button = $('#connectionToggle');
-  button.classList.toggle('paused', !state.connected);
-  button.setAttribute('aria-pressed', String(state.connected));
-  $('#connectionLabel').textContent = state.connected ? 'CONNECTED' : 'PAUSED';
-  document.querySelector('.status-dot').style.background = state.connected ? 'var(--red)' : 'var(--muted-2)';
-  showToast(state.connected ? 'Live polling resumed' : 'Live polling paused');
-});
+$('#importButton').addEventListener('click', openImporter);
+$('#emptyImportButton').addEventListener('click', openImporter);
+$('#salesFileInput').addEventListener('change', (event) => handleFile(event.target.files[0]));
+$('#connectionToggle').addEventListener('click', openImporter);
 
 const revenueTrigger = $('#revenueTrigger');
 const revenueMenu = $('#revenueMenu');
-
 revenueTrigger.addEventListener('click', (event) => {
   event.stopPropagation();
   const isOpen = revenueMenu.hasAttribute('hidden');
@@ -255,14 +450,12 @@ revenueTrigger.addEventListener('click', (event) => {
   else revenueMenu.setAttribute('hidden', '');
   revenueTrigger.setAttribute('aria-expanded', String(isOpen));
 });
-
 document.addEventListener('click', (event) => {
   if (!event.target.closest('.topbar')) {
     revenueMenu.setAttribute('hidden', '');
     revenueTrigger.setAttribute('aria-expanded', 'false');
   }
 });
-
 $('#salesNavItem').addEventListener('click', () => {
   state.filter = 'nonlimited';
   state.query = '';
@@ -272,9 +465,8 @@ $('#salesNavItem').addEventListener('click', () => {
   revenueMenu.setAttribute('hidden', '');
   revenueTrigger.setAttribute('aria-expanded', 'false');
   renderFeed();
-  showToast('Revenue › Sales · showing non-limited items');
+  showToast('Revenue › Sales · showing verified non-limited sales');
 });
 
 updateCounts();
-renderFeed();
-renderTopItems();
+renderAll();

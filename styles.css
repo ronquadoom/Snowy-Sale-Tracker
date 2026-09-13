@@ -38,7 +38,8 @@ h1 { margin: 0; color: #f5f5f6; font-size: 23px; font-weight: 800; letter-spacin
 .connection-pill:hover { border-color: #89303a; background: rgba(102, 27, 36, .34); }
 .connection-pill [data-icon] { width: 14px; height: 14px; }
 .connection-pill svg { stroke-width: 1.7; }
-.connection-pill.paused { color: #8b8990; border-color: #3b3a40; background: rgba(255,255,255,.03); }
+.connection-pill.paused, .connection-pill.waiting { color: #aaa6a0; border-color: #4a4033; background: rgba(79, 60, 33, .22); }
+.connection-pill.loaded { color: #59cfaf; border-color: #235b4f; background: rgba(24, 74, 61, .24); }
 .connection-pill.paused + * { color: var(--muted); }
 .top-meta { display: flex; align-items: center; gap: 25px; color: #8b8990; font-family: var(--mono); font-size: 12px; letter-spacing: .25px; }
 .group-mark { display: inline-flex; align-items: center; gap: 7px; color: #a8a6ad; font-size: 10px; letter-spacing: .85px; }
@@ -134,7 +135,9 @@ h1 { margin: 0; color: #f5f5f6; font-size: 23px; font-weight: 800; letter-spacin
 .no-results { min-height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #78767d; font-family: var(--mono); text-align: center; }
 .no-results [data-icon] { width: 25px; height: 25px; margin-bottom: 12px; color: #535159; }
 .no-results strong { color: #aaa8af; font-size: 13px; font-weight: 400; }
-.no-results p { margin: 6px 0; color: #65636b; font-size: 10px; }
+.no-results p { max-width: 360px; margin: 6px 0 14px; color: #65636b; font-size: 10px; line-height: 1.5; text-align: center; }
+.empty-import-button { min-height: 31px; padding: 0 11px; color: #c9c5cc; border: 1px solid #47323a; border-radius: 5px; background: #1d1216; font-family: var(--mono); font-size: 9px; letter-spacing: .35px; }
+.empty-import-button:hover { color: #fff; border-color: #7a3c47; background: #2a151b; }
 
 .insights-rail { min-width: 0; display: flex; flex-direction: column; gap: 11px; border-left: 1px solid var(--line); padding-left: 12px; }
 .insight-card { padding: 17px 16px 15px; border: 1px solid #1f1f24; border-radius: 10px; background: #0d0d10; }
@@ -148,6 +151,10 @@ h1 { margin: 0; color: #f5f5f6; font-size: 23px; font-weight: 800; letter-spacin
 .pace-grid strong { color: #dad9dd; font-family: var(--mono); font-size: 21px; font-weight: 500; }
 .pace-grid strong small { margin-left: 4px; color: #97949c; font-size: 11px; }
 .pace-graph { height: 64px; margin-top: 16px; position: relative; overflow: hidden; background: repeating-linear-gradient(to bottom, transparent 0, transparent 20px, #17171b 21px); }
+.pace-graph.is-empty { display: grid; place-items: center; background: #101013; border: 1px dashed #24242a; }
+.graph-empty { color: #66646b; font-family: var(--mono); font-size: 8px; }
+.pace-bars { height: 64px; padding: 8px 3px 0; display: flex; align-items: end; gap: 6px; }
+.pace-bar { width: 100%; min-width: 3px; display: block; border-radius: 2px 2px 0 0; background: linear-gradient(to top, #9c303a, #f06b70); box-shadow: 0 0 6px rgba(242,63,73,.18); }
 .graph-line { width: 120%; height: 80px; position: absolute; top: 9px; left: -7px; border-top: 1.5px solid var(--red); border-radius: 48% 45% 0 0; transform: rotate(-4deg) skewX(-22deg); filter: drop-shadow(0 0 4px rgba(242,63,73,.35)); }
 .graph-fill { width: 120%; height: 50px; position: absolute; top: 28px; left: -7px; background: linear-gradient(to bottom, rgba(242,63,73,.15), transparent); clip-path: polygon(0 35%, 8% 28%, 19% 40%, 31% 18%, 42% 25%, 52% 11%, 63% 26%, 75% 3%, 87% 16%, 100% 0, 100% 100%, 0 100%); }
 .graph-dots { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 3px; }
@@ -156,6 +163,7 @@ h1 { margin: 0; color: #f5f5f6; font-size: 23px; font-weight: 800; letter-spacin
 .graph-axis { display: flex; justify-content: space-between; color: #66646b; font-family: var(--mono); font-size: 9px; }
 .top-items-card { padding-bottom: 9px; }
 .top-items { margin-top: 15px; display: flex; flex-direction: column; gap: 5px; }
+.rail-empty { min-height: 58px; display: grid; place-items: center; color: #66646b; font-family: var(--mono); font-size: 9px; text-align: center; }
 .top-item { min-height: 64px; padding: 8px 9px; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 9px; border: 1px solid #1f1f24; border-radius: 9px; background: #111114; }
 .top-rank { color: #69676e; font-family: var(--mono); font-size: 10px; }
 .top-thumb { width: 36px; height: 36px; position: relative; display: grid; place-items: center; overflow: hidden; border-radius: 6px; background: #1c1b22; }
