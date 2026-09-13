@@ -74,6 +74,38 @@
         <label class="feed-search" for="searchInput"><span data-icon="search"></span><input id="searchInput" type="search" placeholder="Search limited feed" autocomplete="off" /></label>
       </section>
 
+      <section class="stock-panel" aria-labelledby="stockHeading">
+        <div class="stock-head">
+          <div>
+            <span class="eyebrow">SNOWY'SZ / CATALOG › IN-STOCK LIMITED</span>
+            <h2 id="stockHeading">In-stock limited UGC</h2>
+          </div>
+          <div class="stock-head-meta">
+            <span class="stock-pill waiting" id="stockPill" title="Waiting for the first catalog scan"><span data-icon="clock"></span><b id="stockPillLabel">SCANNING</b></span>
+            <button class="refresh-button" id="stockRefreshButton" type="button" title="Rescan the supplied catalog IDs now"><span data-icon="refresh"></span> RESCAN <span id="stockIdCount">141</span> IDS</button>
+          </div>
+        </div>
+        <div class="stock-summary" role="list">
+          <div class="stock-stat accent"><span>IN STOCK</span><strong id="stockInStock">0</strong></div>
+          <div class="stock-stat"><span>COPIES LEFT</span><strong id="stockCopies">0</strong></div>
+          <div class="stock-stat"><span>SOLD OUT</span><strong id="stockSoldOut">0</strong></div>
+          <div class="stock-stat"><span>NON-LIMITED</span><strong id="stockNonLimited">0</strong></div>
+          <div class="stock-stat"><span id="stockMismatchLabel">NOT 3,000 RUN</span><strong id="stockMismatch">0</strong></div>
+          <div class="stock-stat"><span>UNVERIFIED</span><strong id="stockUnverified">0</strong></div>
+        </div>
+        <p class="stock-note" id="stockNote">Scanning the supplied catalog IDs through Roblox's public catalog API…</p>
+        <div class="stock-grid" id="stockList"></div>
+        <div class="stock-empty" id="stockEmpty" hidden>
+          <span data-icon="search-x"></span>
+          <strong id="stockEmptyTitle">NOTHING IN STOCK</strong>
+          <p id="stockEmptyText">No supplied ID is currently a limited 3,000-copy run with copies left. Nothing is invented to fill this panel.</p>
+        </div>
+        <div class="stock-footer">
+          <span>Showing <b id="stockShowing">0</b> of <span id="stockTotalInStock">0</span> in-stock items · <span id="stockTracked">141</span> supplied IDs tracked · total stock must be <b>3,000</b></span>
+          <button id="stockShowAllButton" type="button" hidden>SHOW ALL <span data-icon="chevron-down"></span></button>
+        </div>
+      </section>
+
       <main class="feed-layout">
         <section class="feed-column" aria-labelledby="feedHeading">
           <div class="feed-heading">
