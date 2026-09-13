@@ -71,6 +71,8 @@ const catalogNonLimitedCount = catalogItems.filter((item) => !item.limited).leng
 
 const state = { filter: 'nonlimited', query: '', showAll: false };
 let verifiedSales = loadSavedSales();
+let salesSource = verifiedSales.length ? 'csv' : 'none';
+let livePollStarted = false;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
@@ -377,6 +379,31 @@ function renderRevenue() {
   $('#revenueList').innerHTML = `<div class="revenue-row"><span class="revenue-name"><i class="revenue-dot cyan"></i> Non-limited sales</span><strong>${revenueValues.length ? formatRobux(total) : 'R$—'}<small>${nonLimited.length} verified</small></strong></div>`;
 }
 
+async function pollLiveSales(showNotice = false) {
+  try {
+    const response = await fetch('/api/sales', { cache: 'no-store' });
+    if (!response.ok) return false;
+    const payload = await response.json();
+    if (!payload.configured || !Array.isArray(payload.sales)) return false;
+    const before = verifiedSales.map((sale) => `${sale.id}:${sale.date}:${sale.revenue}`).join('|');
+    const after = payload.sales.map((sale) => `${sale.id}:${sale.date}:${sale.revenue}`).join('|');
+    verifiedSales = payload.sales;
+    salesSource = 'live';
+    renderAll();
+    if (showNotice && before !== after) showToast(`Live feed updated · ${verifiedSales.length} recent sales`);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function startLivePolling() {
+  if (livePollStarted) return;
+  livePollStarted = true;
+  pollLiveSales(false);
+  setInterval(() => pollLiveSales(true), 60000);
+}
+
 function renderAll() {
   updateCounts();
   renderFeed();
@@ -384,13 +411,14 @@ function renderAll() {
   renderPace();
   renderRevenue();
   const hasData = verifiedSales.length > 0;
+  const live = salesSource === 'live';
   const connection = $('#connectionToggle');
-  connection.classList.toggle('waiting', !hasData);
-  connection.classList.toggle('loaded', hasData);
-  connection.setAttribute('aria-pressed', String(hasData));
-  $('#connectionLabel').textContent = hasData ? 'CSV LOADED' : 'CSV REQUIRED';
-  connection.querySelector('[data-icon]').innerHTML = iconSvg(hasData ? 'check' : 'upload');
-  document.querySelector('.status-dot').style.background = hasData ? 'var(--green)' : 'var(--muted-2)';
+  connection.classList.toggle('waiting', !hasData && !live);
+  connection.classList.toggle('loaded', hasData || live);
+  connection.setAttribute('aria-pressed', String(hasData || live));
+  $('#connectionLabel').textContent = live ? 'LIVE API' : hasData ? 'CSV LOADED' : 'CSV REQUIRED';
+  connection.querySelector('[data-icon]').innerHTML = iconSvg(live ? 'radio' : hasData ? 'check' : 'upload');
+  document.querySelector('.status-dot').style.background = live ? 'var(--green)' : hasData ? 'var(--cyan)' : 'var(--muted-2)';
 }
 
 function openImporter() {
@@ -403,6 +431,7 @@ async function handleFile(file) {
     const records = parseSalesCsv(await file.text());
     if (!records.length) throw new Error('No sale rows were found in that file.');
     verifiedSales = records;
+    salesSource = 'csv';
     saveSales();
     state.filter = 'nonlimited';
     state.query = '';
@@ -470,3 +499,4 @@ $('#salesNavItem').addEventListener('click', () => {
 
 updateCounts();
 renderAll();
+startLivePolling();

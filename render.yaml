@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: snowy-sale-tracker
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ROBLOX_GROUP_ID
+        value: "370302186"
+      - key: ROBLOX_COOKIE
+        sync: false
