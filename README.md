@@ -1,6 +1,6 @@
 # Snowy'sz Live Limited Sales Tracker
 
-A SkyBlock-themed live dashboard for Snowy'sz community `370302186` that tracks **only limited UGC sales** streamed from the real Roblox **Revenue › Sales** API. It never invents sales, buyers, prices, timestamps, or revenue.
+A classic Roblox `Null_Plainsky`-themed live dashboard for Snowy'sz community `370302186` that tracks **only limited UGC sales** streamed from the real Roblox **Revenue › Sales** API. It never invents sales, buyers, prices, timestamps, or revenue.
 
 ## Data mode — live API only
 
