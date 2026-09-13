@@ -2,6 +2,13 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { URL } = require('node:url');
+const {
+  SUPPLIED_ASSET_IDS,
+  TOTAL_STOCK_REQUIREMENT,
+  getInStockReport,
+  startStockWarmup,
+  mapWithConcurrency,
+} = require('./stock-tracker');
 
 const PORT = Number(process.env.PORT || 4173);
 const HOST = '0.0.0.0';
@@ -104,20 +111,6 @@ function normalizeTransaction(transaction, assetDetails) {
     isLimited,
     isLimitedUnique,
   };
-}
-
-async function mapWithConcurrency(items, limit, fn) {
-  const results = new Array(items.length);
-  let index = 0;
-  async function worker() {
-    while (index < items.length) {
-      const current = index;
-      index += 1;
-      results[current] = await fn(items[current], current);
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-  return results;
 }
 
 async function getLiveSales() {
@@ -232,12 +225,27 @@ async function handleApi(req, res, url) {
       groupId: GROUP_ID,
       liveSalesConfigured: configured,
       status: configured ? 'configured' : 'live-required',
+      stockTracker: {
+        trackedIds: SUPPLIED_ASSET_IDS.length,
+        requiredTotalStock: TOTAL_STOCK_REQUIREMENT,
+        // The in-stock tracker only needs Roblox's public catalog API.
+        configured: true,
+      },
     });
   }
   if (url.pathname === '/api/sales') {
     const result = await getLiveSales();
     const status = result.status === 'api-error' ? 502 : 200;
     return json(res, status, result);
+  }
+  if (url.pathname === '/api/in-stock') {
+    // Public catalog API only: no ROBLOX_COOKIE, no session, no invented stock.
+    const result = await getInStockReport({
+      force: url.searchParams.get('refresh') === '1',
+      includeExcluded: url.searchParams.get('excluded') === '1',
+    });
+    startStockWarmup();
+    return json(res, 200, result);
   }
   return json(res, 404, { error: 'Not found' });
 }
@@ -268,4 +276,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { getLiveSales, getAssetDetails, normalizeTransaction, assetDetailsCache, server };
+module.exports = { getLiveSales, getAssetDetails, normalizeTransaction, assetDetailsCache, getInStockReport, server };

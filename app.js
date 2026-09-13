@@ -47,6 +47,16 @@ const state = {
   sales: [],
   fetchedAt: null,
 };
+
+// In-stock limited UGC tracker (Roblox public catalog API, no session needed).
+const stockState = {
+  report: null,
+  status: 'idle', // 'idle' | 'live' | 'partial' | 'error'
+  showAll: false,
+  message: '',
+};
+const STOCK_PAGE_SIZE = 12;
+let stockPollStarted = false;
 let pollStarted = false;
 
 const $ = (selector) => document.querySelector(selector);
@@ -143,7 +153,7 @@ function loadThumbnails() {
   images.forEach((image) => {
     image.dataset.queued = '1';
   });
-  const ids = [...new Set(images.map((image) => image.dataset.thumbId))].slice(0, 100);
+  const ids = [...new Set(images.map((image) => image.dataset.thumbId))].slice(0, 200);
   fetch(`https://thumbnails.roblox.com/v1/assets?assetIds=${ids.join(',')}&size=150x150&format=Png`)
     .then((response) => response.json())
     .then((payload) => {
@@ -277,6 +287,113 @@ function renderRevenue() {
   $('#revenueList').innerHTML = `<div class="revenue-row"><span class="revenue-name"><i class="revenue-dot cyan"></i> Limited UGC sales</span><strong>${revenues.length ? formatRobux(total) : 'R$—'}<small>${limited.length} verified sale${limited.length === 1 ? '' : 's'}</small></strong></div>`;
 }
 
+function stockItemMarkup(item, index) {
+  const tile = tileMeta(item);
+  const total = Number(item.totalStock) || 0;
+  const left = Number(item.stock) || 0;
+  const percent = total > 0 ? Math.max(2, Math.round((left / total) * 100)) : 0;
+  const flag = item.forSale ? '' : '<span class="stock-flag">PRIMARY SALE OFF</span>';
+  const url = item.url || (item.assetId ? `https://www.roblox.com/catalog/${escapeHtml(item.assetId)}` : 'https://www.roblox.com/catalog');
+  return `<article class="stock-card" style="animation-delay:${index * 16}ms" data-item-url="${url}" tabindex="0" role="link" aria-label="Open ${escapeHtml(item.displayName || item.name)} on Roblox">
+    <div class="stock-thumb">${tile ? `<span class="thumb-fallback" style="--thumb-color:${tile.color}">${tile.glyph}</span>` : ''}${item.assetId ? `<img data-thumb-id="${escapeHtml(item.assetId)}" alt="" loading="lazy" onerror="this.remove()" />` : ''}</div>
+    <div class="stock-copy">
+      <div class="stock-title-line"><strong>${escapeHtml(item.displayName || item.name || `Item ${item.assetId}`)}</strong><span class="market-tag ${item.limitedType === 'Limited Unique' ? 'unique-tag' : 'limited-tag'}">${escapeHtml((item.limitedType || 'limited').toUpperCase())}</span>${flag}</div>
+      <div class="stock-meter"><i style="width:${percent}%"></i></div>
+      <div class="stock-numbers"><span><b>${left.toLocaleString('en-US')}</b> / ${total.toLocaleString('en-US')} left</span><span class="stock-price">${formatRobux(item.priceInRobux)}</span></div>
+    </div>
+  </article>`;
+}
+
+function renderStock() {
+  const report = stockState.report;
+  const pill = $('#stockPill');
+  const totals = report?.totals || { inStock: 0, soldOut: 0, nonLimited: 0, stockMismatch: 0, unknownStock: 0, unavailable: 0 };
+  const items = report?.items || [];
+
+  $('#stockInStock').textContent = totals.inStock || 0;
+  $('#stockCopies').textContent = Number(report?.inStockCopies || 0).toLocaleString('en-US');
+  $('#stockSoldOut').textContent = totals.soldOut || 0;
+  $('#stockNonLimited').textContent = totals.nonLimited || 0;
+  $('#stockMismatch').textContent = totals.stockMismatch || 0;
+  $('#stockUnverified').textContent = (totals.unknownStock || 0) + (totals.unavailable || 0);
+  $('#stockTotalInStock').textContent = totals.inStock || 0;
+  $('#stockTracked').textContent = report?.trackedIds ?? 141;
+  $('#stockIdCount').textContent = report?.trackedIds ?? 141;
+  if (report?.requiredTotalStock) {
+    $('#stockMismatchLabel').textContent = `NOT ${Number(report.requiredTotalStock).toLocaleString('en-US')} RUN`;
+  }
+
+  const stateLabels = { live: 'LIVE CATALOG', partial: 'PARTIAL SCAN', error: 'API ERROR', idle: 'SCANNING' };
+  pill.classList.toggle('waiting', stockState.status === 'idle');
+  pill.classList.toggle('loaded', stockState.status === 'live');
+  pill.classList.toggle('partial', stockState.status === 'partial');
+  pill.classList.toggle('error', stockState.status === 'error');
+  $('#stockPillLabel').textContent = stateLabels[stockState.status] || 'SCANNING';
+  pill.querySelector('[data-icon]').innerHTML = iconSvg(stockState.status === 'live' ? 'radio' : stockState.status === 'error' ? 'search-x' : 'clock');
+  pill.title = stockState.message || 'Roblox public catalog API';
+
+  const visible = stockState.showAll ? items : items.slice(0, STOCK_PAGE_SIZE);
+  $('#stockList').innerHTML = visible.map(stockItemMarkup).join('');
+  $('#stockList').hidden = items.length === 0;
+  $('#stockEmpty').hidden = items.length !== 0;
+  if (items.length === 0 && stockState.status === 'error') {
+    $('#stockEmptyTitle').textContent = 'CATALOG API UNREACHABLE';
+    $('#stockEmptyText').textContent = stockState.message || 'Roblox did not answer the catalog scan. Nothing is guessed while it is unreachable.';
+  } else if (items.length === 0) {
+    $('#stockEmptyTitle').textContent = 'NOTHING IN STOCK';
+    $('#stockEmptyText').textContent = 'No supplied ID is currently a limited 3,000-copy run with copies left. Nothing is invented to fill this panel.';
+  }
+  $('#stockShowing').textContent = visible.length;
+  $('#stockShowAllButton').hidden = items.length <= STOCK_PAGE_SIZE;
+  $('#stockShowAllButton').innerHTML = stockState.showAll ? `SHOW FIRST ${STOCK_PAGE_SIZE} ${iconSvg('chevron-down')}` : `SHOW ALL ${items.length} ${iconSvg('chevron-down')}`;
+
+  if (report) {
+    const excluded = [
+      `${totals.soldOut || 0} sold out`,
+      `${totals.nonLimited || 0} non-limited`,
+      `${totals.stockMismatch || 0} not a ${Number(report.requiredTotalStock || 3000).toLocaleString('en-US')}-copy run`,
+      `${(totals.unknownStock || 0) + (totals.unavailable || 0)} unverified`,
+    ].join(' · ');
+    const coverage = report.complete ? `${report.trackedIds} of ${report.trackedIds} IDs verified` : 'scan still running';
+    $('#stockNote').textContent = `${coverage} · excluded: ${excluded}${report.cached ? ' · cached result' : ''} · ${relativeTime(report.fetchedAt)}`;
+  } else if (stockState.status === 'error') {
+    $('#stockNote').textContent = stockState.message;
+  }
+
+  attachCatalogLinks('.stock-card');
+  loadThumbnails();
+}
+
+async function pollInStock(force = false) {
+  try {
+    const response = await fetch(`/api/in-stock${force ? '?refresh=1' : ''}`, { cache: 'no-store' });
+    const payload = await response.json().catch(() => ({}));
+    if (Array.isArray(payload.items)) {
+      const before = stockState.report ? stockState.report.inStockCopies : null;
+      stockState.report = payload;
+      stockState.status = payload.complete ? 'live' : 'partial';
+      stockState.message = '';
+      if (force && before !== null && before !== payload.inStockCopies) {
+        showToast(`In-stock scan updated · ${payload.inStockCopies.toLocaleString('en-US')} copies left`);
+      }
+    } else {
+      stockState.status = 'error';
+      stockState.message = 'The catalog scan could not be completed on the backend.';
+    }
+  } catch (error) {
+    stockState.status = 'error';
+    stockState.message = 'The catalog API is not reachable from this deployment.';
+  }
+  renderStock();
+}
+
+function startStockPolling() {
+  if (stockPollStarted) return;
+  stockPollStarted = true;
+  pollInStock(false);
+  setInterval(() => pollInStock(true), 300000);
+}
+
 function renderConnection() {
   const pill = $('#connectionPill');
   pill.classList.toggle('waiting', state.status === 'live-required');
@@ -298,6 +415,7 @@ function renderAll() {
   renderPace();
   renderRevenue();
   renderConnection();
+  renderStock();
 }
 
 async function pollLiveSales(showNotice = false) {
@@ -367,6 +485,18 @@ $('#refreshButton').addEventListener('click', () => {
   pollLiveSales(true);
 });
 
+$('#stockRefreshButton').addEventListener('click', () => {
+  const icon = $('#stockRefreshButton').querySelector('[data-icon]');
+  icon.classList.add('spinning');
+  setTimeout(() => icon.classList.remove('spinning'), 650);
+  pollInStock(true);
+});
+
+$('#stockShowAllButton').addEventListener('click', () => {
+  stockState.showAll = !stockState.showAll;
+  renderStock();
+});
+
 const revenueTrigger = $('#revenueTrigger');
 const revenueMenu = $('#revenueMenu');
 revenueTrigger.addEventListener('click', (event) => {
@@ -397,3 +527,4 @@ $('#salesNavItem').addEventListener('click', () => {
 
 renderAll();
 startLivePolling();
+startStockPolling();
