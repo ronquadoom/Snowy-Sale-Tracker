@@ -1,6 +1,5 @@
 const iconPaths = {
   radio: '<path d="M5 8.5a10 10 0 0 1 14 0M8 11.5a6 6 0 0 1 8 0M12 15h.01"/><circle cx="12" cy="15" r="1"/>',
-  upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
   'bar-chart': '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   'trending-up': '<path d="m3 17 6-6 4 4 8-8M15 7h6v6"/>',
   zap: '<path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"/>',
@@ -22,210 +21,44 @@ document.querySelectorAll('[data-icon]').forEach((node) => {
   node.innerHTML = iconSvg(node.dataset.icon);
 });
 
-const palette = [
-  ['#8c78ff', 'rgba(104,83,255,.30)', '✦'],
-  ['#a579ff', 'rgba(149,82,255,.26)', '✧'],
-  ['#ce79ff', 'rgba(196,73,255,.23)', '♛'],
-  ['#54c7ff', 'rgba(49,167,255,.25)', '◈'],
-  ['#4ed5ec', 'rgba(35,200,222,.25)', '◉'],
-  ['#e878c8', 'rgba(230,71,191,.25)', '◒'],
-  ['#6e9cff', 'rgba(68,116,255,.24)', '◇'],
-  ['#f08bdd', 'rgba(230,83,200,.24)', '✺'],
-  ['#8ba6ff', 'rgba(79,116,255,.26)', '✦'],
-  ['#9da6b8', 'rgba(117,143,190,.22)', '✶'],
-];
+// Decorative fallback tiles only — purely visual placeholders shown behind the
+// real Roblox thumbnail. They are not data and never invent sale information.
+const GLYPHS = ['✦', '✧', '◈', '◉', '◇', '✺', '❄', '✵'];
+const TILE_COLORS = ['#8ecbff', '#a8c9ff', '#9fd8ff', '#b8a9ff', '#8ff0d8', '#c3d9ff', '#7adcff', '#a5e8ff'];
 
-function titleFromSlug(slug, index) {
-  const title = slug.replace(/-/g, ' ');
-  return title.toLowerCase() === 'unnamed' ? `Unnamed UGC item ${index + 1}` : title;
+function seedFrom(value) {
+  const source = String(value || '');
+  let hash = 0;
+  for (let index = 0; index < source.length; index += 1) hash = (hash * 31 + source.charCodeAt(index)) | 0;
+  return Math.abs(hash);
 }
 
-function itemFromLink(entry, index) {
-  const [assetId, slug] = entry.split('|');
-  const name = titleFromSlug(slug, index);
-  const lower = name.toLowerCase();
-  const [color, glow, glyph] = palette[index % palette.length];
-  const isFace = /shades|face|emote|troll/i.test(lower);
-  const isLimited = /limited|limitted/i.test(lower);
-  return {
-    id: `${assetId}-${index}`,
-    name,
-    assetId,
-    slug,
-    url: `https://www.roblox.com/catalog/${assetId}/${slug}`,
-    type: 'ASSET',
-    category: isFace ? 'face' : 'head',
-    limited: isLimited,
-    cheap: /cheap/i.test(lower),
-    sparkle: /sparkle/i.test(lower),
-    skybox: /skybox/i.test(lower),
-    color,
-    glow,
-    glyph,
-  };
+function tileMeta(record) {
+  const seed = seedFrom(record.assetId || record.assetName);
+  return { glyph: GLYPHS[seed % GLYPHS.length], color: TILE_COLORS[seed % TILE_COLORS.length] };
 }
 
-const catalogItems = assetLinks.map(itemFromLink);
-const catalogById = new Map(catalogItems.map((item) => [String(item.assetId), item]));
-const catalogNonLimitedCount = catalogItems.filter((item) => !item.limited).length;
+const state = {
+  filter: 'all', // 'all' | 'limited' | 'unique'
+  query: '',
+  showAll: false,
+  status: 'live-required', // 'live-required' | 'live' | 'api-error'
+  message: '',
+  sales: [],
+  fetchedAt: null,
+};
+let pollStarted = false;
 
-const state = { filter: 'nonlimited', query: '', showAll: false };
-let verifiedSales = loadSavedSales();
-let salesSource = verifiedSales.length ? 'csv' : 'none';
-let liveError = '';
-let livePollStarted = false;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
-
-function loadSavedSales() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('snowysz-verified-sales'));
-    return Array.isArray(saved) ? saved : [];
-  } catch (error) {
-    return [];
-  }
-}
-
-function saveSales() {
-  try {
-    localStorage.setItem('snowysz-verified-sales', JSON.stringify(verifiedSales));
-  } catch (error) {
-    // The feed still works for the current session if storage is unavailable.
-  }
-}
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
 }
 
 function formatRobux(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return 'R$—';
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return 'R$—';
   return `R$${Number(value).toLocaleString('en-US')}`;
-}
-
-function parseRobux(value) {
-  if (value === null || value === undefined || String(value).trim() === '') return null;
-  const cleaned = String(value).replace(/[^0-9.,-]/g, '').replace(/,(?=\d{3}(?:\D|$))/g, '');
-  const number = Number(cleaned.replace(',', '.'));
-  return Number.isFinite(number) ? number : null;
-}
-
-function normalizeHeader(value) {
-  return String(value || '').replace(/^\uFEFF/, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = '';
-  let quoted = false;
-  for (let index = 0; index < text.length; index += 1) {
-    const character = text[index];
-    const next = text[index + 1];
-    if (character === '"' && quoted && next === '"') { field += '"'; index += 1; continue; }
-    if (character === '"') { quoted = !quoted; continue; }
-    if (character === ',' && !quoted) { row.push(field); field = ''; continue; }
-    if ((character === '\n' || character === '\r') && !quoted) {
-      if (character === '\r' && next === '\n') index += 1;
-      row.push(field); field = '';
-      if (row.some((cell) => cell.trim() !== '')) rows.push(row);
-      row = [];
-      continue;
-    }
-    field += character;
-  }
-  if (field.length || row.length) { row.push(field); if (row.some((cell) => cell.trim() !== '')) rows.push(row); }
-  return rows;
-}
-
-function headerIndex(headers, names) {
-  return headers.findIndex((header) => names.includes(normalizeHeader(header)));
-}
-
-function parseSalesCsv(text) {
-  const rows = parseCsv(text);
-  if (rows.length < 2) throw new Error('The CSV has no sale rows.');
-  const headers = rows[0];
-  const columns = {
-    buyer: headerIndex(headers, ['buyeruserid', 'buyerid', 'buyer']),
-    date: headerIndex(headers, ['saledatetime', 'saledate', 'date']),
-    location: headerIndex(headers, ['salelocation', 'location']),
-    universe: headerIndex(headers, ['universe']),
-    assetId: headerIndex(headers, ['assetid', 'itemid']),
-    assetName: headerIndex(headers, ['assetname', 'itemname', 'name']),
-    assetType: headerIndex(headers, ['assettype', 'itemtype', 'type']),
-    holdStatus: headerIndex(headers, ['holdstatus', 'status']),
-    revenue: headerIndex(headers, ['revenue']),
-    price: headerIndex(headers, ['price']),
-  };
-  if (columns.assetId < 0 && columns.assetName < 0) throw new Error('Asset ID or Asset Name column was not found.');
-  const get = (cells, index) => index >= 0 ? String(cells[index] || '').trim() : '';
-  return rows.slice(1).map((cells, index) => {
-    const assetId = get(cells, columns.assetId);
-    const assetName = get(cells, columns.assetName) || catalogById.get(assetId)?.name || `Unknown item ${index + 1}`;
-    const catalogItem = catalogById.get(assetId);
-    return {
-      id: `${assetId || assetName}-${index}-${Date.now()}`,
-      buyer: get(cells, columns.buyer),
-      date: get(cells, columns.date),
-      location: get(cells, columns.location) || 'Roblox',
-      universe: get(cells, columns.universe),
-      assetId,
-      assetName,
-      assetType: get(cells, columns.assetType) || catalogItem?.type || 'ASSET',
-      holdStatus: get(cells, columns.holdStatus),
-      revenue: parseRobux(get(cells, columns.revenue)),
-      price: parseRobux(get(cells, columns.price)),
-    };
-  }).filter((record) => record.assetId || record.assetName);
-}
-
-function itemMeta(record) {
-  const known = catalogById.get(String(record.assetId));
-  if (known) return known;
-  const lower = String(record.assetName || '').toLowerCase();
-  const [color, glow, glyph] = palette[Math.abs(String(record.assetId || record.assetName).length) % palette.length];
-  return {
-    id: record.assetId || record.assetName,
-    assetId: record.assetId,
-    name: record.assetName,
-    url: record.assetId ? `https://www.roblox.com/catalog/${record.assetId}` : 'https://www.roblox.com/catalog',
-    category: /shades|face|emote|troll/i.test(lower) ? 'face' : 'head',
-    limited: /limited|limitted/i.test(lower),
-    cheap: /cheap/i.test(lower),
-    sparkle: /sparkle/i.test(lower),
-    skybox: /skybox/i.test(lower),
-    color,
-    glow,
-    glyph,
-  };
-}
-
-function isNonLimited(record) {
-  return !itemMeta(record).limited;
-}
-
-function isInFilter(record) {
-  const item = itemMeta(record);
-  const query = state.query.toLowerCase();
-  const queryMatch = !query || `${record.assetName} ${record.assetId} ${record.buyer} ${record.location}`.toLowerCase().includes(query);
-  if (!queryMatch) return false;
-  if (state.filter === 'nonlimited') return !item.limited;
-  if (state.filter === 'limited') return item.limited;
-  if (state.filter === 'cheap') return item.cheap;
-  if (state.filter === 'head') return item.category === 'head';
-  if (state.filter === 'face') return item.category === 'face';
-  if (state.filter === 'sparkle') return item.sparkle;
-  if (state.filter === 'skybox') return item.skybox;
-  return true;
-}
-
-function showToast(message) {
-  const toast = $('#toast');
-  $('#toastMessage').textContent = message;
-  toast.classList.add('show');
-  clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.remove('show'), 2800);
 }
 
 function relativeTime(value) {
@@ -238,76 +71,139 @@ function relativeTime(value) {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
-function fallbackThumb(item, small = false) {
-  return `<span class="${small ? '' : 'thumb-'}fallback" style="--thumb-color:${item.color};">${item.glyph}</span>`;
+// A sale is "limited" only when Roblox flagged the asset as limited or
+// limited-unique in the live asset-details response.
+function isLimitedRecord(record) {
+  return Boolean(record.isLimited || record.isLimitedUnique);
 }
 
-function thumbMarkup(item, small = false) {
-  if (!item.assetId) return fallbackThumb(item, small);
-  return `${fallbackThumb(item, small)}<img data-thumb-id="${escapeHtml(item.assetId)}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.remove()" />`;
+function isInFilter(record) {
+  if (!isLimitedRecord(record)) return false; // normal sales are never shown
+  const query = state.query.toLowerCase();
+  const haystack = `${record.assetName} ${record.assetId} ${record.buyerName} ${record.buyerId} ${record.location}`.toLowerCase();
+  if (query && !haystack.includes(query)) return false;
+  if (state.filter === 'limited') return Boolean(record.isLimited && !record.isLimitedUnique);
+  if (state.filter === 'unique') return Boolean(record.isLimitedUnique);
+  return true;
+}
+
+function filteredSales() {
+  return state.sales.filter(isInFilter);
+}
+
+function showToast(message) {
+  const toast = $('#toast');
+  $('#toastMessage').textContent = message;
+  toast.classList.add('show');
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => toast.classList.remove('show'), 2800);
+}
+
+function thumbMarkup(record) {
+  const tile = tileMeta(record);
+  const fallback = `<span class="thumb-fallback" style="--thumb-color:${tile.color}">${tile.glyph}</span>`;
+  if (!record.assetId) return fallback;
+  return `${fallback}<img data-thumb-id="${escapeHtml(record.assetId)}" alt="" loading="lazy" onerror="this.remove()" />`;
 }
 
 function saleMarkup(record, index) {
-  const item = itemMeta(record);
-  const amount = record.revenue ?? record.price;
-  const buyer = record.buyer ? `Buyer ${record.buyer}` : 'Buyer ID unavailable';
-  const url = item.url || `https://www.roblox.com/catalog/${record.assetId}`;
-  return `<article class="sale-row ${index === 0 ? 'hot' : ''}" style="animation-delay:${index * 18}ms" data-item-url="${escapeHtml(url)}" tabindex="0" role="link" aria-label="Open ${escapeHtml(record.assetName)} on Roblox">
-    <div class="sale-thumb" style="--thumb-color:${item.color};--thumb-glow:${item.glow}">${thumbMarkup(item)}</div>
+  const limitedLabel = record.isLimitedUnique ? 'LIMITED UNIQUE' : 'LIMITED';
+  const buyer = record.buyerName ? escapeHtml(record.buyerName) : record.buyerId ? `Buyer ${escapeHtml(record.buyerId)}` : 'Buyer unavailable';
+  const location = record.location ? `<span class="source">${escapeHtml(record.location)}</span><span class="arrow">→</span>` : '';
+  const held = record.holdStatus === 'Held' ? '<span class="held-flag">HELD</span>' : '';
+  const url = record.assetId ? `https://www.roblox.com/catalog/${escapeHtml(record.assetId)}` : 'https://www.roblox.com/catalog';
+  return `<article class="sale-row ${index === 0 ? 'hot' : ''}" style="animation-delay:${index * 18}ms" data-item-url="${url}" tabindex="0" role="link" aria-label="Open ${escapeHtml(record.assetName)} on Roblox">
+    <div class="sale-thumb">${thumbMarkup(record)}</div>
     <div class="sale-main">
-      <div class="sale-title-line"><strong>${escapeHtml(record.assetName)}</strong><span class="asset-tag">${escapeHtml(record.assetType || 'ASSET')}</span><span class="market-tag ${item.limited ? 'limited-tag' : 'nonlimited-tag'}">${item.limited ? 'LIMITED' : 'NON-LIMITED'}</span></div>
-      <div class="sale-meta"><span class="source">${escapeHtml(record.location || 'Roblox')}</span><span class="arrow">→</span><span class="buyer">${escapeHtml(buyer)}</span></div>
+      <div class="sale-title-line"><strong>${escapeHtml(record.assetName)}</strong><span class="market-tag ${record.isLimitedUnique ? 'unique-tag' : 'limited-tag'}">${limitedLabel}</span></div>
+      <div class="sale-meta">${location}<span class="buyer">${buyer}</span>${held}</div>
     </div>
-    <div class="sale-value">${formatRobux(amount)}<small>${relativeTime(record.date)}</small></div>
+    <div class="sale-value">${formatRobux(record.revenue)}<small>${relativeTime(record.date)}</small></div>
   </article>`;
 }
 
-function getFilterCounts() {
-  const count = (test) => verifiedSales.filter(test).length;
-  return {
-    all: verifiedSales.length,
-    nonlimited: count((record) => isNonLimited(record)),
-    limited: count((record) => !isNonLimited(record)),
-    cheap: count((record) => itemMeta(record).cheap),
-    head: count((record) => itemMeta(record).category === 'head'),
-    face: count((record) => itemMeta(record).category === 'face'),
-    sparkle: count((record) => itemMeta(record).sparkle),
-    skybox: count((record) => itemMeta(record).skybox),
-  };
-}
-
-function updateCounts() {
-  const counts = getFilterCounts();
-  $('#salesCount').textContent = catalogNonLimitedCount;
-  $('#totalEntries').textContent = verifiedSales.length;
-  $('#verifiedSalesCount').textContent = counts.nonlimited;
-  $$('.feed-filter').forEach((button) => {
-    const count = button.querySelector('b');
-    if (count) count.textContent = counts[button.dataset.filter] ?? 0;
+function attachCatalogLinks(selector) {
+  $$(selector).forEach((row) => {
+    const url = row.dataset.itemUrl;
+    if (!url) return;
+    const open = () => window.open(url, '_blank', 'noopener');
+    row.addEventListener('click', open);
+    row.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        open();
+      }
+    });
   });
-  updateVerifiedStats();
 }
 
-function updateVerifiedStats() {
-  const nonLimited = verifiedSales.filter((record) => isNonLimited(record));
-  const revenueValues = nonLimited.map((record) => record.revenue).filter((value) => Number.isFinite(value));
-  const revenue = revenueValues.reduce((sum, value) => sum + value, 0);
-  $('#realRevenue').textContent = revenueValues.length ? formatRobux(revenue) : 'R$—';
-  const dates = nonLimited.map((record) => Date.parse(record.date)).filter(Number.isFinite);
+function loadThumbnails() {
+  const images = $$('img[data-thumb-id]').filter((image) => !image.dataset.queued);
+  if (!images.length) return;
+  images.forEach((image) => {
+    image.dataset.queued = '1';
+  });
+  const ids = [...new Set(images.map((image) => image.dataset.thumbId))].slice(0, 100);
+  fetch(`https://thumbnails.roblox.com/v1/assets?assetIds=${ids.join(',')}&size=150x150&format=Png`)
+    .then((response) => response.json())
+    .then((payload) => {
+      const urls = new Map((Array.isArray(payload.data) ? payload.data : []).map((entry) => [String(entry.targetId), entry.imageUrl]));
+      images.forEach((image) => {
+        const imageUrl = urls.get(image.dataset.thumbId);
+        if (imageUrl) image.src = imageUrl;
+        else image.remove();
+      });
+    })
+    .catch(() => images.forEach((image) => image.remove()));
+}
+
+function updateStats() {
+  const limited = state.sales.filter(isLimitedRecord);
+  const unique = limited.filter((sale) => sale.isLimitedUnique);
+  const plain = limited.filter((sale) => sale.isLimited && !sale.isLimitedUnique);
+  $('#salesCount').textContent = limited.length;
+  $('#uniqueSalesCount').textContent = unique.length;
+  const revenues = limited.map((sale) => sale.revenue).filter((value) => Number.isFinite(value));
+  $('#realRevenue').textContent = revenues.length ? formatRobux(revenues.reduce((sum, value) => sum + value, 0)) : 'R$—';
+  const dates = limited.map((sale) => Date.parse(sale.date)).filter(Number.isFinite);
   const latest = dates.length ? Math.max(...dates) : null;
   $('#lastSale').textContent = latest ? relativeTime(new Date(latest).toISOString()) : '—';
   const oneHourAgo = Date.now() - 3600000;
-  const recent = nonLimited.filter((record) => Date.parse(record.date) >= oneHourAgo);
-  const recentRevenue = recent.map((record) => record.revenue).filter((value) => Number.isFinite(value));
+  const recent = limited.filter((sale) => Number.isFinite(Date.parse(sale.date)) && Date.parse(sale.date) >= oneHourAgo);
+  const recentRevenues = recent.map((sale) => sale.revenue).filter((value) => Number.isFinite(value));
   $('#paceRate').innerHTML = recent.length ? `${recent.length}<small>/hr</small>` : '—';
-  $('#averageOrder').textContent = recentRevenue.length ? formatRobux(recentRevenue.reduce((sum, value) => sum + value, 0) / recentRevenue.length) : 'R$—';
-  $('#entryCount').textContent = state.filter === 'all' && !state.query ? verifiedSales.length : verifiedSales.filter(isInFilter).length;
+  $('#averageOrder').textContent = recentRevenues.length ? formatRobux(recentRevenues.reduce((sum, value) => sum + value, 0) / recentRevenues.length) : 'R$—';
+  $('#totalEntries').textContent = limited.length;
+  $('#entryCount').textContent = filteredSales().length;
+  $('#countAll').textContent = limited.length;
+  $('#countLimited').textContent = plain.length;
+  $('#countUnique').textContent = unique.length;
+}
+
+function renderEmptyState() {
+  const icon = $('#noResults').querySelector('[data-icon]');
+  if (state.status === 'live-required') {
+    icon.innerHTML = iconSvg('clock');
+    $('#noResultsTitle').textContent = 'LIVE REQUIRED';
+    $('#noResultsText').textContent = 'The dashboard is empty until the live Roblox Revenue › Sales API is connected. Set the private ROBLOX_COOKIE environment variable on the Render backend, then redeploy. No sales are invented while waiting.';
+  } else if (state.status === 'api-error') {
+    icon.innerHTML = iconSvg('search-x');
+    $('#noResultsTitle').textContent = 'API ERROR';
+    $('#noResultsText').textContent = state.message || 'The live Roblox sales API could not be reached from the backend.';
+  } else if (!state.sales.length) {
+    icon.innerHTML = iconSvg('radio');
+    $('#noResultsTitle').textContent = 'NO LIMITED SALES';
+    $('#noResultsText').textContent = 'The live API is connected, but none of the latest 100 transactions are limited UGC sales. Normal sales are intentionally hidden.';
+  } else {
+    icon.innerHTML = iconSvg('search');
+    $('#noResultsTitle').textContent = 'No matching limited sales';
+    $('#noResultsText').textContent = 'Try a different filter or search term.';
+  }
 }
 
 function renderFeed() {
-  const filtered = verifiedSales.filter(isInFilter);
+  const filtered = filteredSales();
   const visible = state.showAll ? filtered : filtered.slice(0, 9);
-  const hasSales = verifiedSales.length > 0;
   $('#saleList').innerHTML = visible.map(saleMarkup).join('');
   $('#saleList').hidden = visible.length === 0;
   $('#noResults').hidden = visible.length !== 0;
@@ -315,48 +211,49 @@ function renderFeed() {
   $('#filteredTotal').textContent = filtered.length;
   $('#loadMoreButton').hidden = filtered.length <= 9;
   $('#loadMoreButton').innerHTML = state.showAll ? `SHOW LESS ${iconSvg('chevron-down')}` : `LOAD MORE ${iconSvg('chevron-down')}`;
-  const feedLabels = { all: 'ALL VERIFIED SALES', nonlimited: 'NON-LIMITED SALES', limited: 'LIMITED SALES', cheap: 'CHEAP ITEM SALES', head: 'HEAD ACCESSORY SALES', face: 'FACE / EMOTE SALES', sparkle: 'SPARKLE SERIES SALES', skybox: 'SKYBOX ITEM SALES' };
-  $('#feedEyebrow').textContent = `SNOWY'SZ / ${feedLabels[state.filter] || 'VERIFIED SALES'}`;
-  if (hasSales && visible.length === 0) {
-    $('#noResultsTitle').textContent = 'No matching verified sales';
-    $('#noResultsText').textContent = 'Try a different filter or search term.';
-  } else {
-    $('#noResultsTitle').textContent = 'No verified sales loaded';
-    $('#noResultsText').textContent = 'Export Sales of Goods from Roblox Revenue › Sales, then import the CSV here.';
-  }
+  const feedLabels = { all: 'ALL LIMITED SALES', limited: 'LIMITED SALES', unique: 'LIMITED UNIQUE SALES' };
+  $('#feedEyebrow').textContent = `SNOWY'SZ / ${feedLabels[state.filter] || 'LIVE LIMITED SALES'}`;
+  renderEmptyState();
   attachCatalogLinks('.sale-row');
   loadThumbnails();
-  updateVerifiedStats();
 }
 
 function renderTopItems() {
   const grouped = new Map();
-  verifiedSales.filter(isNonLimited).forEach((record) => {
+  state.sales.filter(isLimitedRecord).forEach((record) => {
     const key = String(record.assetId || record.assetName);
-    const existing = grouped.get(key) || { item: itemMeta(record), name: record.assetName, count: 0, revenue: 0 };
+    const existing = grouped.get(key) || { name: record.assetName, assetId: record.assetId, count: 0, revenue: 0, isLimitedUnique: false };
     existing.count += 1;
     if (Number.isFinite(record.revenue)) existing.revenue += record.revenue;
+    existing.isLimitedUnique = existing.isLimitedUnique || record.isLimitedUnique;
     grouped.set(key, existing);
   });
   const top = [...grouped.values()].sort((a, b) => b.count - a.count || b.revenue - a.revenue).slice(0, 6);
   if (!top.length) {
-    $('#topItems').innerHTML = '<div class="rail-empty">No verified non-limited sales yet</div>';
+    $('#topItems').innerHTML = '<div class="rail-empty">Waiting for live limited sales…</div>';
     return;
   }
-  $('#topItems').innerHTML = top.map((entry, index) => `<div class="top-item" data-item-url="${escapeHtml(entry.item.url)}" tabindex="0" role="link">
-    <span class="top-rank">${index + 1}</span><div class="top-thumb" style="--thumb-color:${entry.item.color}">${thumbMarkup(entry.item, true)}</div>
-    <div class="top-item-copy"><strong>${escapeHtml(entry.name)}</strong><span>NON-LIMITED · ${entry.count} VERIFIED</span></div><div class="top-item-value">${formatRobux(entry.revenue)}<small>${entry.count} sold</small></div>
-  </div>`).join('');
+  $('#topItems').innerHTML = top.map((entry, index) => {
+    const tile = tileMeta(entry);
+    const tag = entry.isLimitedUnique ? 'LIMITED UNIQUE' : 'LIMITED';
+    const url = entry.assetId ? `https://www.roblox.com/catalog/${escapeHtml(entry.assetId)}` : 'https://www.roblox.com/catalog';
+    return `<div class="top-item" data-item-url="${url}" tabindex="0" role="link">
+      <span class="top-rank">${index + 1}</span>
+      <div class="top-thumb" style="--thumb-color:${tile.color}">${entry.assetId ? `<span class="thumb-fallback">${tile.glyph}</span><img data-thumb-id="${escapeHtml(entry.assetId)}" alt="" loading="lazy" onerror="this.remove()" />` : `<span class="thumb-fallback">${tile.glyph}</span>`}</div>
+      <div class="top-item-copy"><strong>${escapeHtml(entry.name)}</strong><span>${tag} · ${entry.count} VERIFIED</span></div>
+      <div class="top-item-value">${formatRobux(entry.revenue)}<small>${entry.count} sold</small></div>
+    </div>`;
+  }).join('');
   attachCatalogLinks('.top-item');
   loadThumbnails();
 }
 
 function renderPace() {
-  const recent = verifiedSales.filter((record) => isNonLimited(record) && Number.isFinite(Date.parse(record.date)) && Date.now() - Date.parse(record.date) <= 600000);
+  const recent = state.sales.filter((record) => isLimitedRecord(record) && Number.isFinite(Date.parse(record.date)) && Date.now() - Date.parse(record.date) <= 600000);
   const graph = $('#paceGraph');
   if (!recent.length) {
     graph.className = 'pace-graph is-empty';
-    graph.innerHTML = '<span class="graph-empty">Import verified sales to plot pace</span>';
+    graph.innerHTML = '<span class="graph-empty">Waiting for live limited sales to plot pace</span>';
     return;
   }
   const buckets = Array(10).fill(0);
@@ -366,98 +263,79 @@ function renderPace() {
   });
   const max = Math.max(...buckets, 1);
   graph.className = 'pace-graph';
-  graph.innerHTML = `<div class="pace-bars">${buckets.reverse().map((value) => `<i class="pace-bar" style="height:${value ? Math.max(12, value / max * 100) : 3}%" title="${value} verified sale${value === 1 ? '' : 's'}"></i>`).join('')}</div>`;
+  graph.innerHTML = `<div class="pace-bars">${buckets.reverse().map((value) => `<i class="pace-bar" style="height:${value ? Math.max(12, value / max * 100) : 3}%" title="${value} limited sale${value === 1 ? '' : 's'}"></i>`).join('')}</div>`;
 }
 
 function renderRevenue() {
-  const nonLimited = verifiedSales.filter(isNonLimited);
-  const revenueValues = nonLimited.map((record) => record.revenue).filter((value) => Number.isFinite(value));
-  const total = revenueValues.reduce((sum, value) => sum + value, 0);
-  if (!nonLimited.length) {
-    $('#revenueList').innerHTML = '<div class="rail-empty">No verified revenue loaded</div>';
+  const limited = state.sales.filter(isLimitedRecord);
+  const revenues = limited.map((sale) => sale.revenue).filter((value) => Number.isFinite(value));
+  const total = revenues.reduce((sum, value) => sum + value, 0);
+  if (!limited.length) {
+    $('#revenueList').innerHTML = '<div class="rail-empty">No live limited revenue yet</div>';
     return;
   }
-  $('#revenueList').innerHTML = `<div class="revenue-row"><span class="revenue-name"><i class="revenue-dot cyan"></i> Non-limited sales</span><strong>${revenueValues.length ? formatRobux(total) : 'R$—'}<small>${nonLimited.length} verified</small></strong></div>`;
+  $('#revenueList').innerHTML = `<div class="revenue-row"><span class="revenue-name"><i class="revenue-dot cyan"></i> Limited UGC sales</span><strong>${revenues.length ? formatRobux(total) : 'R$—'}<small>${limited.length} verified sale${limited.length === 1 ? '' : 's'}</small></strong></div>`;
+}
+
+function renderConnection() {
+  const pill = $('#connectionPill');
+  pill.classList.toggle('waiting', state.status === 'live-required');
+  pill.classList.toggle('loaded', state.status === 'live');
+  pill.classList.toggle('error', state.status === 'api-error');
+  $('#connectionLabel').textContent = state.status === 'live' ? 'LIVE API' : state.status === 'api-error' ? 'API ERROR' : 'LIVE REQUIRED';
+  pill.querySelector('[data-icon]').innerHTML = iconSvg(state.status === 'live' ? 'radio' : state.status === 'api-error' ? 'search-x' : 'clock');
+  pill.title = state.status === 'live'
+    ? `Connected · ${state.sales.length} limited sale${state.sales.length === 1 ? '' : 's'} in the latest 100 transactions`
+    : state.message || 'Waiting for the live Roblox Revenue › Sales API';
+  const dot = $('.status-dot');
+  dot.style.background = state.status === 'live' ? 'var(--sky)' : state.status === 'api-error' ? 'var(--danger)' : 'var(--amber)';
+}
+
+function renderAll() {
+  updateStats();
+  renderFeed();
+  renderTopItems();
+  renderPace();
+  renderRevenue();
+  renderConnection();
 }
 
 async function pollLiveSales(showNotice = false) {
   try {
     const response = await fetch('/api/sales', { cache: 'no-store' });
     const payload = await response.json().catch(() => ({}));
-    if (!payload.configured) return false;
-    if (!response.ok || payload.connected === false || !Array.isArray(payload.sales)) {
-      const previousError = liveError;
-      liveError = payload.message || 'Live sales API is unavailable.';
-      if (showNotice && liveError !== previousError) showToast(liveError);
-      if (salesSource === 'none') renderAll();
-      return false;
+    if (payload.status === 'live' && Array.isArray(payload.sales)) {
+      const before = state.sales.map((sale) => `${sale.id}:${sale.date}:${sale.revenue}`).join('|');
+      // Keep limited records only — a defensive check on top of the server filter.
+      state.sales = payload.sales.filter(isLimitedRecord);
+      state.status = 'live';
+      state.message = '';
+      state.fetchedAt = payload.fetchedAt || null;
+      const after = state.sales.map((sale) => `${sale.id}:${sale.date}:${sale.revenue}`).join('|');
+      if (showNotice && before !== after) showToast(`Live feed updated · ${state.sales.length} limited sale${state.sales.length === 1 ? '' : 's'}`);
+    } else if (payload.status === 'api-error') {
+      state.status = 'api-error';
+      state.message = payload.message || 'The live Roblox sales API could not be reached from the backend.';
+      if (showNotice) showToast(state.message);
+    } else {
+      // live-required: the backend has no ROBLOX_COOKIE yet. Stay empty.
+      state.status = 'live-required';
+      state.message = payload.message || '';
+      state.sales = [];
     }
-    const before = verifiedSales.map((sale) => `${sale.id}:${sale.date}:${sale.revenue}`).join('|');
-    const after = payload.sales.map((sale) => `${sale.id}:${sale.date}:${sale.revenue}`).join('|');
-    verifiedSales = payload.sales;
-    salesSource = 'live';
-    liveError = '';
-    renderAll();
-    if (showNotice && before !== after) showToast(`Live feed updated · ${verifiedSales.length} recent sales`);
-    return true;
   } catch (error) {
-    if (salesSource === 'none') {
-      liveError = 'Live API is not reachable from this deployment.';
-      renderAll();
-    }
-    return false;
+    state.status = 'api-error';
+    state.message = 'The live API is not reachable from this deployment.';
   }
+  renderAll();
+  return state.status === 'live';
 }
 
 function startLivePolling() {
-  if (livePollStarted) return;
-  livePollStarted = true;
+  if (pollStarted) return;
+  pollStarted = true;
   pollLiveSales(false);
   setInterval(() => pollLiveSales(true), 60000);
-}
-
-function renderAll() {
-  updateCounts();
-  renderFeed();
-  renderTopItems();
-  renderPace();
-  renderRevenue();
-  const hasData = verifiedSales.length > 0;
-  const live = salesSource === 'live';
-  const apiError = !hasData && !live && Boolean(liveError);
-  const connection = $('#connectionToggle');
-  connection.classList.toggle('waiting', !hasData && !live && !apiError);
-  connection.classList.toggle('loaded', hasData || live);
-  connection.classList.toggle('error', apiError);
-  connection.setAttribute('aria-pressed', String(hasData || live));
-  $('#connectionLabel').textContent = live ? 'LIVE API' : hasData ? 'CSV LOADED' : apiError ? 'API ERROR' : 'CSV REQUIRED';
-  connection.title = liveError || 'Import your Roblox Revenue › Sales CSV';
-  connection.querySelector('[data-icon]').innerHTML = iconSvg(live ? 'radio' : hasData ? 'check' : 'upload');
-  document.querySelector('.status-dot').style.background = live ? 'var(--green)' : hasData ? 'var(--cyan)' : 'var(--muted-2)';
-}
-
-function openImporter() {
-  $('#salesFileInput').click();
-}
-
-async function handleFile(file) {
-  if (!file) return;
-  try {
-    const records = parseSalesCsv(await file.text());
-    if (!records.length) throw new Error('No sale rows were found in that file.');
-    verifiedSales = records;
-    salesSource = 'csv';
-    saveSales();
-    state.filter = 'nonlimited';
-    state.query = '';
-    state.showAll = false;
-    $('#searchInput').value = '';
-    $$('.feed-filter').forEach((button) => button.classList.toggle('active', button.dataset.filter === 'nonlimited'));
-    renderAll();
-    showToast(`Loaded ${records.length} verified sale${records.length === 1 ? '' : 's'} from Roblox`);
-  } catch (error) {
-    showToast(error.message || 'Could not read that CSV');
-  }
 }
 
 $$('.feed-filter').forEach((button) => {
@@ -466,6 +344,7 @@ $$('.feed-filter').forEach((button) => {
     state.showAll = false;
     $$('.feed-filter').forEach((item) => item.classList.toggle('active', item === button));
     renderFeed();
+    updateStats();
   });
 });
 
@@ -473,6 +352,7 @@ $('#searchInput').addEventListener('input', (event) => {
   state.query = event.target.value.trim();
   state.showAll = false;
   renderFeed();
+  updateStats();
 });
 
 $('#loadMoreButton').addEventListener('click', () => {
@@ -480,10 +360,12 @@ $('#loadMoreButton').addEventListener('click', () => {
   renderFeed();
 });
 
-$('#importButton').addEventListener('click', openImporter);
-$('#emptyImportButton').addEventListener('click', openImporter);
-$('#salesFileInput').addEventListener('change', (event) => handleFile(event.target.files[0]));
-$('#connectionToggle').addEventListener('click', openImporter);
+$('#refreshButton').addEventListener('click', () => {
+  const icon = $('#refreshButton').querySelector('[data-icon]');
+  icon.classList.add('spinning');
+  setTimeout(() => icon.classList.remove('spinning'), 650);
+  pollLiveSales(true);
+});
 
 const revenueTrigger = $('#revenueTrigger');
 const revenueMenu = $('#revenueMenu');
@@ -501,17 +383,17 @@ document.addEventListener('click', (event) => {
   }
 });
 $('#salesNavItem').addEventListener('click', () => {
-  state.filter = 'nonlimited';
+  state.filter = 'all';
   state.query = '';
   state.showAll = false;
   $('#searchInput').value = '';
-  $$('.feed-filter').forEach((button) => button.classList.toggle('active', button.dataset.filter === 'nonlimited'));
+  $$('.feed-filter').forEach((button) => button.classList.toggle('active', button.dataset.filter === 'all'));
   revenueMenu.setAttribute('hidden', '');
   revenueTrigger.setAttribute('aria-expanded', 'false');
   renderFeed();
-  showToast('Revenue › Sales · showing verified non-limited sales');
+  updateStats();
+  showToast('Revenue › Sales · live limited sales feed');
 });
 
-updateCounts();
 renderAll();
 startLivePolling();
