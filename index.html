@@ -21,14 +21,14 @@
         </div>
         <div class="top-meta">
           <span class="group-mark"><span class="mini-snow">✦</span> SNOWY'SZ</span>
-          <span class="entry-count"><strong id="entryCount">48</strong> / 48 entries</span>
+          <span class="entry-count"><strong id="entryCount">141</strong> / <span id="totalEntries">141</span> entries</span>
         </div>
       </header>
 
       <section class="stats-bar" aria-label="Live sales stats">
         <div class="stat-block accent-stat">
           <span class="stat-icon" data-icon="bar-chart"></span>
-          <div><span class="stat-label">TODAY'S SALES</span><strong id="salesCount">17</strong></div>
+          <div><span class="stat-label">TRACKED ITEMS</span><strong id="salesCount">141</strong></div>
         </div>
         <div class="stat-block accent-stat">
           <span class="stat-icon" data-icon="trending-up"></span>
@@ -47,13 +47,13 @@
 
       <section class="filter-bar" aria-label="Feed filters">
         <div class="filter-scroll" id="filterScroll">
-          <button class="feed-filter active" data-filter="all" type="button">All <b>48</b></button>
-          <button class="feed-filter" data-filter="daily" type="button">DAILY UPLOADS <b>17</b></button>
-          <button class="feed-filter" data-filter="onsale" type="button">ON SALE <b>17</b></button>
-          <button class="feed-filter" data-filter="head" type="button">HEAD ACCESSORIES <b>29</b></button>
-          <button class="feed-filter" data-filter="face" type="button">FACE ACCESSORIES <b>10</b></button>
-          <button class="feed-filter" data-filter="rainbow" type="button">RAINBOW SERIES <b>12</b></button>
-          <button class="feed-filter" data-filter="limited" type="button">LIMITEDS <b>3</b></button>
+          <button class="feed-filter active" data-filter="all" type="button">All <b>141</b></button>
+          <button class="feed-filter" data-filter="cheap" type="button">CHEAP ITEMS <b>0</b></button>
+          <button class="feed-filter" data-filter="limited" type="button">LIMITEDS <b>0</b></button>
+          <button class="feed-filter" data-filter="head" type="button">HEAD ACCESSORIES <b>0</b></button>
+          <button class="feed-filter" data-filter="face" type="button">FACE / EMOTES <b>0</b></button>
+          <button class="feed-filter" data-filter="sparkle" type="button">SPARKLE SERIES <b>0</b></button>
+          <button class="feed-filter" data-filter="skybox" type="button">SKYBOX ITEMS <b>0</b></button>
         </div>
         <label class="feed-search" for="searchInput"><span data-icon="search"></span><input id="searchInput" type="search" placeholder="Search feed" autocomplete="off" /></label>
       </section>
@@ -66,7 +66,7 @@
           </div>
           <div class="sale-list" id="saleList"></div>
           <div class="no-results" id="noResults" hidden><span data-icon="search-x"></span><strong>No matching sales</strong><p>Try another filter or search term.</p></div>
-          <div class="feed-footer"><span>Showing <b id="showingCount">9</b> of 48 entries</span><button id="loadMoreButton" type="button">LOAD MORE <span data-icon="chevron-down"></span></button></div>
+          <div class="feed-footer"><span>Showing <b id="showingCount">9</b> of <span id="footerTotal">141</span> entries</span><button id="loadMoreButton" type="button">LOAD MORE <span data-icon="chevron-down"></span></button></div>
         </section>
 
         <aside class="insights-rail">
@@ -97,6 +97,7 @@
       <footer class="footer-bar"><span><span class="footer-mark">✦</span> SNOWY'SZ UGC TRACKER</span><span>ROBLOX COMMUNITY 370302186 · <a href="https://www.roblox.com/communities/370302186/Snowysz#!/about" target="_blank" rel="noreferrer">VIEW GROUP <span data-icon="arrow-up-right"></span></a></span></footer>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"><span data-icon="check"></span><span id="toastMessage">Feed synced</span></div>
+    <script src="catalog-data.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

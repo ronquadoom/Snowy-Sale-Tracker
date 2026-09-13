@@ -20,40 +20,66 @@ document.querySelectorAll('[data-icon]').forEach((node) => {
   node.innerHTML = iconSvg(node.dataset.icon);
 });
 
-const imageBase = 'https://tr.rbxcdn.com/180DAY-';
-const feedItems = [
-  {
-    id: 'animated-rainbow-horns', name: 'Animated Rainbow Horns', assetId: '80550135091196', type: 'ASSET', flag: 'NEW', category: 'head', rainbow: true, daily: true, amount: 95, buyer: '@snowfall', age: '1m ago', sales: 5, glyph: '✦', color: '#8c78ff', glow: 'rgba(104, 83, 255, .3)', image: `${imageBase}93fedc8d951ad349d56ee64abf42c4f9/150/150/Hat/Png/noFilter`, hot: true,
-  },
-  {
-    id: 'rainbow-spiral-tornado', name: 'Animated Rainbow Spiral Tornado Hat', assetId: '137668363946214', type: 'ASSET', flag: '', category: 'head', rainbow: true, daily: true, amount: 95, buyer: '@aurorafrost', age: '2m ago', sales: 4, glyph: '✧', color: '#a579ff', glow: 'rgba(149, 82, 255, .26)', image: `${imageBase}cb45f148e2d2d329a4ec6f4fb01d5158/150/150/Hat/Png/noFilter`,
-  },
-  {
-    id: 'animated-rainbow-crown', name: '[⌛ANIMATED RAINBOW] Crown', assetId: '83430944718004', type: 'ASSET', flag: '', category: 'head', rainbow: true, daily: true, limited: true, amount: 95, buyer: '@icecube', age: '3m ago', sales: 4, glyph: '♛', color: '#ce79ff', glow: 'rgba(196, 73, 255, .23)', image: `${imageBase}9fa272571636ec3f0996cc0097aab190/150/150/Hat/Png/noFilter`,
-  },
-  {
-    id: 'rainbow-clockwork-shades', name: 'Animated Rainbow Clockwork Shades', assetId: '137478845250193', type: 'ASSET', flag: '', category: 'face', rainbow: true, daily: true, amount: 95, buyer: '@cloudyvoid', age: '5m ago', sales: 3, glyph: '◈', color: '#54c7ff', glow: 'rgba(49, 167, 255, .25)', image: `${imageBase}a636c28271b0c4ce6810ce9b8bebfd97/150/150/FaceAccessory/Png/noFilter`,
-  },
-  {
-    id: 'rainbow-headphones', name: '[⏳Animated Rainbow] Headphones', assetId: '111182971245915', type: 'ASSET', flag: '', category: 'head', rainbow: true, daily: true, amount: 95, buyer: '@starrysnow', age: '6m ago', sales: 2, glyph: '◉', color: '#4ed5ec', glow: 'rgba(35, 200, 222, .25)', image: `${imageBase}650fef56f71704115c5544faef72eec2/150/150/Hat/Png/noFilter`,
-  },
-  {
-    id: 'rainbow-fedora', name: '[⏳RAINBOW ANIMATED] Fedora', assetId: '85092908035558', type: 'ASSET', flag: '', category: 'head', rainbow: true, daily: true, amount: 95, buyer: '@frostdaze', age: '7m ago', sales: 2, glyph: '◒', color: '#e878c8', glow: 'rgba(230, 71, 191, .25)', image: `${imageBase}bb3e148e903edc3ab47e381420178371/150/150/Hat/Png/noFilter`,
-  },
-  {
-    id: 'clockwork-shades', name: '[⏳Rainbow Animated] Clockwork Shades', assetId: '133053224044278', type: 'ASSET', flag: '', category: 'face', rainbow: true, daily: true, limited: true, amount: 95, buyer: '@auroracode', age: '8m ago', sales: 1, glyph: '◇', color: '#6e9cff', glow: 'rgba(68, 116, 255, .24)', image: `${imageBase}3145c3da6f75690ea0146dd0c3fae1ba/150/150/FaceAccessory/Png/noFilter`,
-  },
-  {
-    id: 'rainbow-crown', name: '[⏳Animated Rainbow] Crown', assetId: '111164009273654', type: 'ASSET', flag: '', category: 'head', rainbow: true, daily: true, limited: true, amount: 95, buyer: '@winterbyte', age: '10m ago', sales: 1, glyph: '✺', color: '#f08bdd', glow: 'rgba(230, 83, 200, .24)', image: `${imageBase}1ad611e5851f3408ec6115dbd681522f/150/150/Hat/Png/noFilter`,
-  },
-  {
-    id: 'animated-rainbow-horns-2', name: '⌛Animated Rainbow Horns', assetId: '109993377916109', type: 'ASSET', flag: '', category: 'head', rainbow: true, daily: true, amount: 95, buyer: '@icylogic', age: '12m ago', sales: 1, glyph: '✦', color: '#8ba6ff', glow: 'rgba(79, 116, 255, .26)', image: `${imageBase}b9bd1c8c5de5978a8aadf35dd11e4dc3/150/150/Hat/Png/noFilter`,
-  },
-  {
-    id: 'silver-star-crown', name: 'Silver Star Crown', assetId: '127292656833623', type: 'ASSET', flag: '', category: 'head', rainbow: false, daily: true, amount: 95, buyer: '@moonlit', age: '14m ago', sales: 1, glyph: '✶', color: '#9da6b8', glow: 'rgba(117, 143, 190, .22)', image: '',
-  },
+const palette = [
+  ['#8c78ff', 'rgba(104,83,255,.30)', '✦'],
+  ['#a579ff', 'rgba(149,82,255,.26)', '✧'],
+  ['#ce79ff', 'rgba(196,73,255,.23)', '♛'],
+  ['#54c7ff', 'rgba(49,167,255,.25)', '◈'],
+  ['#4ed5ec', 'rgba(35,200,222,.25)', '◉'],
+  ['#e878c8', 'rgba(230,71,191,.25)', '◒'],
+  ['#6e9cff', 'rgba(68,116,255,.24)', '◇'],
+  ['#f08bdd', 'rgba(230,83,200,.24)', '✺'],
+  ['#8ba6ff', 'rgba(79,116,255,.26)', '✦'],
+  ['#9da6b8', 'rgba(117,143,190,.22)', '✶'],
 ];
+const buyers = ['@snowfall', '@aurorafrost', '@icecube', '@cloudyvoid', '@starrysnow', '@frostdaze', '@auroracode', '@winterbyte', '@icylogic', '@moonlit'];
 
+function titleFromSlug(slug, index) {
+  const title = slug.replace(/-/g, ' ');
+  return title.toLowerCase() === 'unnamed' ? `Unnamed UGC item ${index + 1}` : title;
+}
+
+function itemFromLink(entry, index) {
+  const [assetId, slug] = entry.split('|');
+  const name = titleFromSlug(slug, index);
+  const lower = name.toLowerCase();
+  const [color, glow, glyph] = palette[index % palette.length];
+  const isFace = /shades|face|emote|troll/i.test(lower);
+  const isLimited = /limited|limitted/i.test(lower);
+  const isCheap = /cheap/i.test(lower);
+  const isSparkle = /sparkle/i.test(lower);
+  const isSkybox = /skybox/i.test(lower);
+  const isRainbow = /rainbow/i.test(lower);
+  const amount = isCheap ? 65 : isLimited ? 95 : 85;
+  const ageMinutes = index < 9 ? index + 1 : 10 + Math.floor(index * 1.7);
+  return {
+    id: `${assetId}-${index}`,
+    name,
+    assetId,
+    slug,
+    url: `https://www.roblox.com/catalog/${assetId}/${slug}`,
+    type: 'ASSET',
+    flag: index === 0 ? 'NEW' : '',
+    category: isFace ? 'face' : 'head',
+    limited: isLimited,
+    cheap: isCheap,
+    sparkle: isSparkle,
+    skybox: isSkybox,
+    rainbow: isRainbow,
+    daily: true,
+    amount,
+    buyer: buyers[index % buyers.length],
+    age: `${ageMinutes}m ago`,
+    sales: Math.max(1, 8 - Math.floor(index / 18)),
+    glyph,
+    color,
+    glow,
+    hot: index === 0,
+  };
+}
+
+const feedItems = assetLinks.map(itemFromLink);
+const totalEntries = feedItems.length;
 const state = { filter: 'all', query: '', showAll: false, connected: true };
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -66,16 +92,39 @@ function showToast(message) {
   showToast.timer = setTimeout(() => toast.classList.remove('show'), 2400);
 }
 
+function filterCounts() {
+  return {
+    all: totalEntries,
+    cheap: feedItems.filter((item) => item.cheap).length,
+    limited: feedItems.filter((item) => item.limited).length,
+    head: feedItems.filter((item) => item.category === 'head').length,
+    face: feedItems.filter((item) => item.category === 'face').length,
+    sparkle: feedItems.filter((item) => item.sparkle).length,
+    skybox: feedItems.filter((item) => item.skybox).length,
+  };
+}
+
+function updateCounts() {
+  const counts = filterCounts();
+  $('#totalEntries').textContent = totalEntries;
+  $('#footerTotal').textContent = totalEntries;
+  $('#salesCount').textContent = totalEntries;
+  $$('.feed-filter').forEach((button) => {
+    const count = button.querySelector('b');
+    if (count) count.textContent = counts[button.dataset.filter] ?? 0;
+  });
+}
+
 function matches(item) {
   const q = state.query.toLowerCase();
   const searchMatch = !q || `${item.name} ${item.category} ${item.buyer}`.toLowerCase().includes(q);
   let filterMatch = true;
-  if (state.filter === 'daily') filterMatch = item.daily;
-  if (state.filter === 'onsale') filterMatch = item.amount > 0;
+  if (state.filter === 'cheap') filterMatch = item.cheap;
+  if (state.filter === 'limited') filterMatch = item.limited;
   if (state.filter === 'head') filterMatch = item.category === 'head';
   if (state.filter === 'face') filterMatch = item.category === 'face';
-  if (state.filter === 'rainbow') filterMatch = item.rainbow;
-  if (state.filter === 'limited') filterMatch = item.limited;
+  if (state.filter === 'sparkle') filterMatch = item.sparkle;
+  if (state.filter === 'skybox') filterMatch = item.skybox;
   return searchMatch && filterMatch;
 }
 
@@ -84,12 +133,11 @@ function fallbackThumb(item, small = false) {
 }
 
 function thumbMarkup(item, small = false) {
-  const image = item.image ? `<img src="${item.image}" alt="${item.name}" loading="lazy" onerror="this.remove()" />` : '';
-  return `${fallbackThumb(item, small)}${image}`;
+  return `${fallbackThumb(item, small)}<img data-thumb-id="${item.assetId}" alt="${item.name}" loading="lazy" onerror="this.remove()" />`;
 }
 
 function saleMarkup(item, index) {
-  return `<article class="sale-row ${item.hot ? 'hot' : ''}" style="animation-delay:${index * 28}ms" data-item-url="https://www.roblox.com/catalog/${item.assetId}" tabindex="0" role="link" aria-label="Open ${item.name} on Roblox">
+  return `<article class="sale-row ${item.hot ? 'hot' : ''}" style="animation-delay:${index * 18}ms" data-item-url="${item.url}" tabindex="0" role="link" aria-label="Open ${item.name} on Roblox">
     <div class="sale-thumb" style="--thumb-color:${item.color};--thumb-glow:${item.glow}">${thumbMarkup(item)}</div>
     <div class="sale-main">
       <div class="sale-title-line"><strong>${item.name}</strong><span class="asset-tag">${item.type}</span>${item.flag ? `<span class="new-tag">${item.flag}</span>` : ''}</div>
@@ -108,26 +156,48 @@ function renderFeed() {
   $('#showingCount').textContent = visible.length;
   $('#loadMoreButton').hidden = filtered.length <= 9;
   $('#loadMoreButton').innerHTML = state.showAll ? `SHOW LESS ${iconSvg('chevron-down')}` : `LOAD MORE ${iconSvg('chevron-down')}`;
-  $('#entryCount').textContent = state.query || state.filter !== 'all' ? visible.length : 48;
+  $('#entryCount').textContent = state.query || state.filter !== 'all' ? filtered.length : totalEntries;
+  attachCatalogLinks('.sale-row');
+  loadThumbnails();
+}
 
-  $$('.sale-row').forEach((row) => {
+function renderTopItems() {
+  const top = [...feedItems].sort((a, b) => b.sales - a.sales).slice(0, 6);
+  $('#topItems').innerHTML = top.map((item, index) => `<div class="top-item" data-item-url="${item.url}" tabindex="0" role="link">
+    <span class="top-rank">${index + 1}</span><div class="top-thumb" style="--thumb-color:${item.color}">${thumbMarkup(item, true)}</div>
+    <div class="top-item-copy"><strong>${item.name}</strong><span>SNOWY'SZ</span></div><div class="top-item-value">R$${item.amount}<small>${item.sales} sold</small></div>
+  </div>`).join('');
+  attachCatalogLinks('.top-item');
+  loadThumbnails();
+}
+
+function attachCatalogLinks(selector) {
+  $$(selector).forEach((row) => {
+    if (row.dataset.bound) return;
+    row.dataset.bound = 'true';
     const open = () => window.open(row.dataset.itemUrl, '_blank', 'noopener,noreferrer');
     row.addEventListener('click', open);
     row.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } });
   });
 }
 
-function renderTopItems() {
-  const top = [...feedItems].sort((a, b) => b.sales - a.sales).slice(0, 6);
-  $('#topItems').innerHTML = top.map((item, index) => `<div class="top-item" data-item-url="https://www.roblox.com/catalog/${item.assetId}" tabindex="0" role="link">
-    <span class="top-rank">${index + 1}</span><div class="top-thumb" style="--thumb-color:${item.color}">${thumbMarkup(item, true)}</div>
-    <div class="top-item-copy"><strong>${item.name}</strong><span>SNOWY'SZ</span></div><div class="top-item-value">R$${item.amount}<small>${item.sales} sold</small></div>
-  </div>`).join('');
-  $$('.top-item').forEach((row) => {
-    const open = () => window.open(row.dataset.itemUrl, '_blank', 'noopener,noreferrer');
-    row.addEventListener('click', open);
-    row.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } });
-  });
+async function loadThumbnails() {
+  const nodes = $$('[data-thumb-id]');
+  const ids = [...new Set(nodes.map((node) => node.dataset.thumbId))];
+  for (let start = 0; start < ids.length; start += 50) {
+    const batch = ids.slice(start, start + 50);
+    try {
+      const response = await fetch(`https://thumbnails.roblox.com/v1/assets?assetIds=${batch.join(',')}&returnPolicy=PlaceHolder&size=150x150&format=Png&isCircular=false`);
+      if (!response.ok) continue;
+      const payload = await response.json();
+      (payload.data || []).forEach((asset) => {
+        if (!asset.imageUrl) return;
+        $$(`[data-thumb-id="${asset.targetId}"]`).forEach((image) => { image.src = asset.imageUrl; });
+      });
+    } catch (error) {
+      // The gradient glyph remains as a local fallback if Roblox blocks the request.
+    }
+  }
 }
 
 $$('.feed-filter').forEach((button) => {
@@ -155,7 +225,8 @@ $('#refreshButton').addEventListener('click', () => {
   icon.classList.add('spinning');
   setTimeout(() => icon.classList.remove('spinning'), 650);
   $('#lastSale').textContent = 'now';
-  showToast('Feed synced · 48 entries checked');
+  showToast(`Feed synced · ${totalEntries} entries checked`);
+  loadThumbnails();
 });
 
 $('#connectionToggle').addEventListener('click', () => {
@@ -168,5 +239,6 @@ $('#connectionToggle').addEventListener('click', () => {
   showToast(state.connected ? 'Live polling resumed' : 'Live polling paused');
 });
 
+updateCounts();
 renderFeed();
 renderTopItems();
