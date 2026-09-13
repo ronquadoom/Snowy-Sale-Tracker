@@ -7,6 +7,7 @@ const iconPaths = {
   refresh: '<path d="M20 11a8.1 8.1 0 0 0-14.8-3L3 11M3 5v6h6M4 13a8.1 8.1 0 0 0 14.8 3L21 13m0 6v-6h-6"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
   'chevron-down': '<path d="m6 9 6 6 6-6"/>',
+  'chevron-right': '<path d="m9 6 6 6-6 6"/>',
   'arrow-up-right': '<path d="M7 17 17 7M7 7h10v10"/>',
   check: '<path d="m5 12 4 4L19 6"/>',
   'search-x': '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5M8.5 8.5l5 5M13.5 8.5l-5 5"/>',
@@ -242,6 +243,36 @@ $('#connectionToggle').addEventListener('click', () => {
   $('#connectionLabel').textContent = state.connected ? 'CONNECTED' : 'PAUSED';
   document.querySelector('.status-dot').style.background = state.connected ? 'var(--red)' : 'var(--muted-2)';
   showToast(state.connected ? 'Live polling resumed' : 'Live polling paused');
+});
+
+const revenueTrigger = $('#revenueTrigger');
+const revenueMenu = $('#revenueMenu');
+
+revenueTrigger.addEventListener('click', (event) => {
+  event.stopPropagation();
+  const isOpen = revenueMenu.hasAttribute('hidden');
+  if (isOpen) revenueMenu.removeAttribute('hidden');
+  else revenueMenu.setAttribute('hidden', '');
+  revenueTrigger.setAttribute('aria-expanded', String(isOpen));
+});
+
+document.addEventListener('click', (event) => {
+  if (!event.target.closest('.topbar')) {
+    revenueMenu.setAttribute('hidden', '');
+    revenueTrigger.setAttribute('aria-expanded', 'false');
+  }
+});
+
+$('#salesNavItem').addEventListener('click', () => {
+  state.filter = 'nonlimited';
+  state.query = '';
+  state.showAll = false;
+  $('#searchInput').value = '';
+  $$('.feed-filter').forEach((button) => button.classList.toggle('active', button.dataset.filter === 'nonlimited'));
+  revenueMenu.setAttribute('hidden', '');
+  revenueTrigger.setAttribute('aria-expanded', 'false');
+  renderFeed();
+  showToast('Revenue › Sales · showing non-limited items');
 });
 
 updateCounts();

@@ -30,7 +30,7 @@ a { color: inherit; text-decoration: none; }
 
 .app-frame { min-height: 100vh; position: relative; isolation: isolate; overflow: hidden; background: transparent; }
 .app-frame::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background-image: linear-gradient(180deg, rgba(10, 10, 14, .46), rgba(8, 9, 14, .72)), url("https://media.forgecdn.net/attachments/546/824/preview-day-2.png"); background-position: center center; background-size: cover; background-attachment: fixed; filter: saturate(1.04) contrast(1.04); }
-.topbar { height: 66px; padding: 0 25px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line-soft); background: rgba(9, 9, 11, .76); }
+.topbar { height: 66px; padding: 0 25px; display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 30; border-bottom: 1px solid var(--line-soft); background: rgba(9, 9, 11, .76); }
 .live-title { display: flex; align-items: center; gap: 13px; }
 .status-dot { width: 14px; height: 14px; flex: 0 0 14px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 1px rgba(242, 63, 73, .18), 0 0 14px rgba(242, 63, 73, .15); }
 h1 { margin: 0; color: #f5f5f6; font-size: 23px; font-weight: 800; letter-spacing: -.8px; }
@@ -44,6 +44,21 @@ h1 { margin: 0; color: #f5f5f6; font-size: 23px; font-weight: 800; letter-spacin
 .group-mark { display: inline-flex; align-items: center; gap: 7px; color: #a8a6ad; font-size: 10px; letter-spacing: .85px; }
 .mini-snow { color: var(--cyan); font-size: 15px; }
 .entry-count strong { color: #e0dfe2; font-weight: 400; }
+.revenue-trigger { height: 31px; padding: 0 8px 0 10px; display: inline-flex; align-items: center; gap: 9px; color: #c1bfc6; border: 1px solid transparent; border-radius: 4px; background: transparent; font-family: var(--mono); font-size: 10px; letter-spacing: .65px; }
+.revenue-trigger:hover, .revenue-trigger[aria-expanded="true"] { color: #f0eef2; border-color: #303037; background: #202126; }
+.revenue-trigger [data-icon] { width: 14px; height: 14px; color: #9f9ca5; }
+.revenue-menu { width: 325px; position: absolute; top: 58px; right: 17px; display: grid; grid-template-columns: 158px 167px; overflow: hidden; border: 1px solid #101014; border-radius: 2px; background: #28292f; box-shadow: 0 17px 38px rgba(0,0,0,.45); }
+.revenue-menu[hidden] { display: none; }
+.revenue-primary, .revenue-secondary { padding: 5px 0; }
+.revenue-primary { background: #25262c; }
+.revenue-secondary { border-left: 1px solid #1f2025; background: #34353c; }
+.revenue-nav-item, .revenue-secondary button { width: 100%; min-height: 39px; padding: 0 9px; display: flex; align-items: center; justify-content: space-between; border: 0; color: #d0ced4; background: transparent; font-family: var(--sans); font-size: 11px; font-weight: 600; text-align: left; }
+.revenue-nav-item:hover, .revenue-secondary button:hover { color: #fff; background: rgba(255,255,255,.06); }
+.revenue-nav-item.active { color: #f2f0f4; }
+.revenue-nav-item [data-icon] { width: 14px; height: 14px; color: #a6a4aa; }
+.revenue-nav-item b { min-width: 31px; height: 22px; padding: 0 6px; display: inline-grid; place-items: center; color: #222329; border-radius: 13px; background: #f0f0f2; font-size: 9px; font-weight: 800; }
+.revenue-secondary button.selected { color: #f4f2f5; background: #414249; }
+.revenue-secondary button { min-height: 39px; color: #d9d7dc; }
 
 .stats-bar { height: 78px; padding: 0 17px; display: flex; align-items: center; border-bottom: 1px solid var(--line-soft); }
 .stat-block { min-width: 174px; height: 43px; padding: 0 24px 0 0; margin-right: 18px; display: flex; align-items: center; gap: 12px; border-right: 1px solid var(--line-soft); }
@@ -80,7 +95,11 @@ h1 { margin: 0; color: #f5f5f6; font-size: 23px; font-weight: 800; letter-spacin
 .feed-heading { min-height: 56px; padding: 5px 12px 11px 15px; display: flex; align-items: end; justify-content: space-between; }
 .eyebrow { display: block; color: #817f87; font-family: var(--mono); font-size: 10px; letter-spacing: 1px; line-height: 1; }
 .feed-heading h2 { margin: 8px 0 0; color: #dcdbe0; font-size: 16px; font-weight: 700; letter-spacing: -.25px; }
-.live-clock { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 3px; color: #66646b; font-family: var(--mono); font-size: 10px; }
+.feed-heading-meta { display: flex; align-items: center; gap: 15px; margin-bottom: 3px; }
+.sales-source { display: inline-flex; align-items: center; gap: 5px; color: #77747d; font-family: var(--mono); font-size: 9px; letter-spacing: .35px; }
+.sales-source b { color: #5c5a63; font-weight: 400; }
+.sales-source strong { color: #c0bdc5; font-weight: 500; }
+.live-clock { display: inline-flex; align-items: center; gap: 7px; color: #66646b; font-family: var(--mono); font-size: 10px; }
 .live-clock i { width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 3px rgba(242,63,73,.08); }
 .sale-list { display: flex; flex-direction: column; gap: 7px; }
 .sale-row { min-height: 85px; padding: 10px 16px 10px 20px; display: grid; grid-template-columns: 58px minmax(0, 1fr) 90px; align-items: center; gap: 16px; border: 1px solid var(--line); border-left: 3px solid #1b1b20; border-radius: 14px; background: #0d0d10; transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; animation: rowIn 220ms ease both; }
@@ -183,7 +202,7 @@ h1 { margin: 0; color: #f5f5f6; font-size: 23px; font-weight: 800; letter-spacin
 }
 
 @media (max-width: 590px) {
-  .topbar { height: 60px; }.status-dot { width: 11px; height: 11px; flex-basis: 11px; }.live-title { gap: 9px; } h1 { font-size: 19px; }.connection-pill { height: 26px; padding: 0 8px; font-size: 8px; }.connection-pill [data-icon] { width: 12px; height: 12px; }.top-meta { gap: 0; font-size: 10px; }.group-mark { display: none; }
+  .topbar { height: 60px; }.status-dot { width: 11px; height: 11px; flex-basis: 11px; }.live-title { gap: 9px; } h1 { font-size: 19px; }.connection-pill { height: 26px; padding: 0 8px; font-size: 8px; }.connection-pill [data-icon] { width: 12px; height: 12px; }.top-meta { gap: 0; font-size: 10px; }.group-mark { display: none; }.revenue-trigger { padding-left: 5px; padding-right: 5px; font-size: 8px; }.revenue-menu { width: calc(100vw - 18px); max-width: 325px; right: 9px; grid-template-columns: 45% 55%; }.revenue-nav-item, .revenue-secondary button { font-size: 10px; }
   .stats-bar { height: 76px; padding: 0 13px; }.stat-block { min-width: 135px; margin-right: 15px; padding-right: 15px; gap: 8px; }.stat-block.accent-stat { min-width: 140px; }.stat-block.last-sale { min-width: 142px; }.stat-icon { width: 15px; height: 15px; flex-basis: 15px; }.stat-label { font-size: 8px; letter-spacing: .65px; }.stat-block strong { font-size: 14px; }.refresh-button { font-size: 8px; padding: 0 8px; }
   .filter-bar { padding: 0 10px; }.feed-search { width: 35px; flex-basis: 35px; padding: 0; justify-content: center; border-color: transparent; background: transparent; }.feed-search input { display: none; }.feed-search:focus-within { border-color: transparent; }.feed-search [data-icon] { width: 16px; height: 16px; }
   .feed-layout { padding: 7px 7px 14px; }.feed-heading { min-height: 51px; padding-left: 10px; }.feed-heading h2 { font-size: 14px; }.eyebrow { font-size: 9px; }.live-clock { font-size: 8px; }.sale-list { gap: 6px; }.sale-row { min-height: 78px; padding: 8px 9px 8px 11px; grid-template-columns: 45px minmax(0, 1fr) 65px; gap: 9px; border-radius: 10px; }.sale-thumb { width: 45px; height: 45px; }.thumb-fallback { font-size: 21px; }.sale-title-line { gap: 5px; }.sale-title-line strong { font-size: 12px; }.asset-tag, .new-tag { height: 20px; padding: 0 5px; font-size: 7px; }.new-tag { display: none; }.sale-meta { margin-top: 5px; gap: 5px; font-size: 9px; }.sale-meta .source { max-width: 113px; padding: 3px 5px; font-size: 8px; }.sale-meta .source::before { width: 5px; height: 5px; margin-right: 3px; }.sale-value { gap: 5px; font-size: 13px; }.sale-value small { font-size: 8px; }.feed-footer { padding: 0 8px; font-size: 8px; }.feed-footer button { font-size: 8px; }

@@ -20,8 +20,25 @@
           <button class="connection-pill" id="connectionToggle" type="button" aria-pressed="true"><span data-icon="radio"></span><b id="connectionLabel">CONNECTED</b></button>
         </div>
         <div class="top-meta">
+          <button class="revenue-trigger" id="revenueTrigger" type="button" aria-expanded="false"><span>REVENUE</span><span data-icon="chevron-right"></span></button>
           <span class="group-mark"><span class="mini-snow">✦</span> SNOWY'SZ</span>
-          <span class="entry-count"><strong id="entryCount">141</strong> / <span id="totalEntries">141</span> entries</span>
+          <span class="entry-count"><strong id="entryCount">59</strong> / <span id="totalEntries">141</span> entries</span>
+        </div>
+        <div class="revenue-menu" id="revenueMenu" hidden>
+          <div class="revenue-primary">
+            <button class="revenue-nav-item active" type="button"><span>Revenue</span><span data-icon="chevron-right"></span></button>
+            <button class="revenue-nav-item" type="button">Members</button>
+            <button class="revenue-nav-item" type="button">Roles <b>New</b></button>
+            <button class="revenue-nav-item" type="button">Content Moderation</button>
+            <button class="revenue-nav-item" type="button">Affiliates <span data-icon="chevron-right"></span></button>
+          </div>
+          <div class="revenue-secondary">
+            <button type="button">Summary</button>
+            <button class="selected" id="salesNavItem" type="button">Sales</button>
+            <button type="button">Publishing Advance</button>
+            <button type="button">Rebates</button>
+            <button type="button">Payouts</button>
+          </div>
         </div>
       </header>
 
@@ -62,7 +79,7 @@
         <section class="feed-column" aria-labelledby="feedHeading">
           <div class="feed-heading">
             <div><span class="eyebrow" id="feedEyebrow">SNOWY'SZ / NON-LIMITED SALES</span><h2 id="feedHeading">Latest sales</h2></div>
-            <span class="live-clock"><i></i> polling every 30s</span>
+            <div class="feed-heading-meta"><span class="sales-source"><span>REVENUE</span><b>›</b><strong>SALES</strong></span><span class="live-clock"><i></i> polling every 30s</span></div>
           </div>
           <div class="sale-list" id="saleList"></div>
           <div class="no-results" id="noResults" hidden><span data-icon="search-x"></span><strong>No matching sales</strong><p>Try another filter or search term.</p></div>
