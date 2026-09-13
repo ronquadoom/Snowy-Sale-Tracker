@@ -3,189 +3,100 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#071827" />
-    <meta name="description" content="Snowy'sz UGC sale tracker — catch every drop before it melts." />
-    <title>Snowy’sz · UGC Tracker</title>
+    <meta name="theme-color" content="#09090b" />
+    <meta name="description" content="Snowy'sz live UGC sale feed." />
+    <title>Snowy'sz · Live Feed</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="app-shell">
-      <div class="mobile-scrim" id="mobileScrim"></div>
-      <aside class="sidebar" id="sidebar">
-        <div class="brand-lockup">
-          <div class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 40 40" role="img"><path d="M20 3.5v33M6.05 12l27.9 16M6.05 28l27.9-16M20 3.5l3.15 5.45M20 3.5l-3.15 5.45M20 36.5l3.15-5.45M20 36.5l-3.15-5.45M6.05 12l6.3.15M6.05 12l3.15 5.45M33.95 28l-6.3-.15M33.95 28l-3.15-5.45M6.05 28l6.3-.15M6.05 28l3.15-5.45M33.95 12l-6.3.15M33.95 12l-3.15 5.45" /></svg>
-          </div>
-          <div>
-            <div class="brand-name">snowy<span>’</span>sz</div>
-            <div class="brand-subtitle">UGC TRACKER</div>
-          </div>
-          <button class="icon-button sidebar-close" id="sidebarClose" aria-label="Close navigation" type="button"><span data-icon="x"></span></button>
+    <div class="app-frame">
+      <header class="topbar">
+        <div class="live-title">
+          <span class="status-dot" aria-hidden="true"></span>
+          <h1>Live Feed</h1>
+          <button class="connection-pill" id="connectionToggle" type="button" aria-pressed="true"><span data-icon="radio"></span><b id="connectionLabel">CONNECTED</b></button>
         </div>
-
-        <div class="community-switcher">
-          <img src="https://tr.rbxcdn.com/180DAY-0839405d68e4a92414fe757f0b43f01d/150/150/Image/Webp/noFilter" alt="Snowy'sz community" />
-          <div class="switcher-copy">
-            <strong>Snowy'sz</strong>
-            <span><i class="online-dot"></i> 6,918 members</span>
-          </div>
-          <span class="chevron" data-icon="chevron-down"></span>
+        <div class="top-meta">
+          <span class="group-mark"><span class="mini-snow">✦</span> SNOWY'SZ</span>
+          <span class="entry-count"><strong id="entryCount">48</strong> / 48 entries</span>
         </div>
+      </header>
 
-        <nav class="side-nav" aria-label="Primary navigation">
-          <p class="nav-label">TRACKING</p>
-          <button class="nav-item active" data-view="dashboard" type="button"><span class="nav-icon" data-icon="grid"></span><span>Overview</span></button>
-          <button class="nav-item" data-view="catalog" type="button"><span class="nav-icon" data-icon="tag"></span><span>Catalog</span><span class="nav-count">48</span></button>
-          <button class="nav-item" data-view="history" type="button"><span class="nav-icon" data-icon="activity"></span><span>Price history</span></button>
-          <button class="nav-item" data-view="watchlist" type="button"><span class="nav-icon" data-icon="star"></span><span>Watchlist</span><span class="nav-count accent-count" id="watchlistNavCount">6</span></button>
-
-          <p class="nav-label nav-label-community">COMMUNITY</p>
-          <a class="nav-item nav-link" href="https://www.roblox.com/communities/370302186/Snowysz#!/about" target="_blank" rel="noreferrer"><span class="nav-icon" data-icon="users"></span><span>Snowy'sz group</span><span class="external-icon" data-icon="arrow-up-right"></span></a>
-          <a class="nav-item nav-link" href="https://www.roblox.com/users/1190548591/profile" target="_blank" rel="noreferrer"><span class="nav-icon" data-icon="user"></span><span>Creator profile</span><span class="external-icon" data-icon="arrow-up-right"></span></a>
-        </nav>
-
-        <div class="sidebar-bottom">
-          <div class="freeze-note">
-            <div class="freeze-icon"><span data-icon="snowflake"></span></div>
-            <div>
-              <strong>Keep an eye out</strong>
-              <p>Snowy uploads daily.</p>
-            </div>
-          </div>
-          <div class="profile-chip">
-            <div class="profile-avatar">S</div>
-            <div class="profile-copy"><strong>Snowy</strong><span>Owner &amp; creator</span></div>
-            <span class="more-icon" data-icon="more-horizontal"></span>
-          </div>
+      <section class="stats-bar" aria-label="Live sales stats">
+        <div class="stat-block accent-stat">
+          <span class="stat-icon" data-icon="bar-chart"></span>
+          <div><span class="stat-label">TODAY'S SALES</span><strong id="salesCount">17</strong></div>
         </div>
-      </aside>
+        <div class="stat-block accent-stat">
+          <span class="stat-icon" data-icon="trending-up"></span>
+          <div><span class="stat-label">TODAY'S REVENUE</span><strong>R$1,615</strong></div>
+        </div>
+        <div class="stat-block">
+          <span class="stat-icon" data-icon="zap"></span>
+          <div><span class="stat-label">RATE (1H)</span><strong>R$95</strong></div>
+        </div>
+        <div class="stat-block last-sale">
+          <span class="stat-icon" data-icon="clock"></span>
+          <div><span class="stat-label">LAST SALE</span><strong id="lastSale">1m ago</strong></div>
+        </div>
+        <button class="refresh-button" id="refreshButton" type="button"><span data-icon="refresh"></span> SYNC FEED</button>
+      </section>
 
-      <main class="main-content">
-        <header class="topbar">
-          <div class="topbar-left">
-            <button class="icon-button menu-button" id="menuButton" aria-label="Open navigation" type="button"><span data-icon="menu"></span></button>
-            <div class="breadcrumbs"><span>Snowy’sz</span><span class="breadcrumb-slash">/</span><strong id="breadcrumbCurrent">Overview</strong></div>
-          </div>
-          <div class="topbar-actions">
-            <label class="search-box" for="globalSearch">
-              <span class="search-icon" data-icon="search"></span>
-              <input id="globalSearch" type="search" placeholder="Search items..." autocomplete="off" />
-              <kbd>/</kbd>
-            </label>
-            <button class="top-action notification-button" id="notificationButton" type="button" aria-label="View notifications"><span data-icon="bell"></span><i></i></button>
-            <a class="roblox-link" href="https://www.roblox.com/communities/370302186/Snowysz#!/about" target="_blank" rel="noreferrer"><span>View on Roblox</span><span data-icon="arrow-up-right"></span></a>
-          </div>
-        </header>
+      <section class="filter-bar" aria-label="Feed filters">
+        <div class="filter-scroll" id="filterScroll">
+          <button class="feed-filter active" data-filter="all" type="button">All <b>48</b></button>
+          <button class="feed-filter" data-filter="daily" type="button">DAILY UPLOADS <b>17</b></button>
+          <button class="feed-filter" data-filter="onsale" type="button">ON SALE <b>17</b></button>
+          <button class="feed-filter" data-filter="head" type="button">HEAD ACCESSORIES <b>29</b></button>
+          <button class="feed-filter" data-filter="face" type="button">FACE ACCESSORIES <b>10</b></button>
+          <button class="feed-filter" data-filter="rainbow" type="button">RAINBOW SERIES <b>12</b></button>
+          <button class="feed-filter" data-filter="limited" type="button">LIMITEDS <b>3</b></button>
+        </div>
+        <label class="feed-search" for="searchInput"><span data-icon="search"></span><input id="searchInput" type="search" placeholder="Search feed" autocomplete="off" /></label>
+      </section>
 
-        <div class="page-content">
-          <section class="page-intro" aria-labelledby="pageTitle">
-            <div>
-              <div class="eyebrow"><span class="eyebrow-dot"></span> SNOWY'SZ · COMMUNITY 370302186</div>
-              <h1 id="pageTitle">Catch every drop <em>before it melts.</em></h1>
-              <p class="intro-copy">A calmer way to track Snowy’s newest UGC, price moves, and limited-time sales.</p>
-            </div>
-            <div class="intro-actions">
-              <button class="secondary-button" id="refreshButton" type="button"><span data-icon="refresh-cw"></span><span>Refresh feed</span></button>
-              <button class="primary-button" id="joinButton" type="button"><span data-icon="plus"></span><span>Join group</span></button>
-            </div>
+      <main class="feed-layout">
+        <section class="feed-column" aria-labelledby="feedHeading">
+          <div class="feed-heading">
+            <div><span class="eyebrow">SNOWY'SZ / SALE EVENTS</span><h2 id="feedHeading">Latest sales</h2></div>
+            <span class="live-clock"><i></i> polling every 30s</span>
+          </div>
+          <div class="sale-list" id="saleList"></div>
+          <div class="no-results" id="noResults" hidden><span data-icon="search-x"></span><strong>No matching sales</strong><p>Try another filter or search term.</p></div>
+          <div class="feed-footer"><span>Showing <b id="showingCount">9</b> of 48 entries</span><button id="loadMoreButton" type="button">LOAD MORE <span data-icon="chevron-down"></span></button></div>
+        </section>
+
+        <aside class="insights-rail">
+          <section class="insight-card pace-card">
+            <div class="card-heading"><span class="eyebrow">SESSION PACE</span><span class="muted-mono">last 10 min</span></div>
+            <div class="pace-grid"><div><span>Rate</span><strong>12<small>/hr</small></strong></div><div><span>Avg Order</span><strong>R$95</strong></div></div>
+            <div class="pace-graph" aria-label="Sales pace for the last ten minutes"><div class="graph-line"></div><div class="graph-fill"></div><div class="graph-dots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+            <div class="graph-axis"><span>10m ago</span><span>now</span></div>
           </section>
 
-          <section class="hero-card" aria-label="Next drop countdown">
-            <div class="hero-copy">
-              <div class="live-pill"><span class="pulse-dot"></span> LIVE TRACKING <span class="pill-divider"></span> UPDATED <span id="lastUpdated">2 min ago</span></div>
-              <h2>Something icy is<br /><span>about to land.</span></h2>
-              <p>We’ll flag the moment a new item appears or a price shifts. No FOMO required.</p>
-              <div class="hero-foot">
-                <div class="countdown-block">
-                  <span class="mini-label">NEXT DROP WINDOW</span>
-                  <div class="countdown" id="countdown"><span>01</span><b>:</b><span>47</span><b>:</b><span>32</span></div>
-                  <div class="countdown-labels"><span>HRS</span><span>MIN</span><span>SEC</span></div>
-                </div>
-                <div class="hero-separator"></div>
-                <div class="signal-copy"><span class="signal-icon" data-icon="zap"></span><div><strong>Sale signals on</strong><span>Watching 48 items</span></div></div>
-              </div>
-            </div>
-            <div class="hero-visual" aria-hidden="true">
-              <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
-              <div class="hero-snowflake">✦</div>
-              <div class="floating-card floating-card-back"><span class="tiny-snow">✦</span><span>NEW DROP</span></div>
-              <div class="floating-card floating-card-front"><div class="float-thumb">❄</div><div><strong>Snowfall halo</strong><span>Just spotted · 75 R$</span></div><span class="float-arrow" data-icon="arrow-up-right"></span></div>
-              <span class="sparkle sparkle-a">✦</span><span class="sparkle sparkle-b">✧</span><span class="sparkle sparkle-c">·</span>
-            </div>
+          <section class="insight-card top-items-card">
+            <div class="card-heading"><span class="eyebrow">TODAY'S TOP ITEMS</span><span class="muted-mono">17 sold</span></div>
+            <div class="top-items" id="topItems"></div>
           </section>
 
-          <section class="metric-grid" aria-label="Tracker summary">
-            <article class="metric-card">
-              <div class="metric-top"><span class="metric-icon blue" data-icon="package"></span><span class="trend positive"><span data-icon="trending-up"></span> 6 this week</span></div>
-              <div class="metric-value">48</div><div class="metric-label">Tracked items</div>
-            </article>
-            <article class="metric-card">
-              <div class="metric-top"><span class="metric-icon lilac" data-icon="tag"></span><span class="metric-caption">CURRENTLY</span></div>
-              <div class="metric-value">17</div><div class="metric-label">On sale now</div>
-            </article>
-            <article class="metric-card">
-              <div class="metric-top"><span class="metric-icon peach" data-icon="arrow-down"></span><span class="trend positive"><span data-icon="trending-down"></span> 14.2%</span></div>
-              <div class="metric-value">9</div><div class="metric-label">Price drops · 24h</div>
-            </article>
-            <article class="metric-card metric-watchlist">
-              <div class="metric-top"><span class="metric-icon yellow" data-icon="star"></span><button class="metric-link" data-view="watchlist" type="button">View list <span data-icon="arrow-up-right"></span></button></div>
-              <div class="metric-value" id="watchlistMetric">6</div><div class="metric-label">On your watchlist</div>
-            </article>
-          </section>
-
-          <section class="dashboard-grid">
-            <div class="items-panel panel-card">
-              <div class="panel-heading">
-                <div><div class="section-kicker">THE FEED</div><h2 id="itemsTitle">Latest tracked items</h2></div>
-                <button class="filter-button" id="filterButton" type="button"><span data-icon="sliders-horizontal"></span> Filters <span class="filter-count">2</span></button>
-              </div>
-              <div class="filter-drawer" id="filterDrawer">
-                <div class="filter-group"><label for="categoryFilter">Category</label><select id="categoryFilter"><option value="all">All categories</option><option value="head">Head &amp; hair</option><option value="face">Face accessories</option><option value="back">Back accessories</option><option value="shoulder">Shoulder accessories</option></select></div>
-                <div class="filter-group"><label for="sortFilter">Sort by</label><select id="sortFilter"><option value="recent">Recently added</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option><option value="change">Biggest price move</option></select></div>
-                <button class="clear-filters" id="clearFilters" type="button">Clear filters</button>
-              </div>
-              <div class="item-tabs" role="tablist" aria-label="Item filters">
-                <button class="item-tab active" data-filter="all" role="tab" type="button">All items <span>48</span></button>
-                <button class="item-tab" data-filter="sale" role="tab" type="button">On sale <span>17</span></button>
-                <button class="item-tab" data-filter="drops" role="tab" type="button">Price drops <span>9</span></button>
-                <button class="item-tab" data-filter="watchlist" role="tab" type="button">Watchlist <span id="watchlistTabCount">6</span></button>
-              </div>
-              <div class="items-list" id="itemsList"></div>
-              <div class="empty-state" id="emptyState" hidden><div class="empty-icon" data-icon="search-x"></div><h3>No items found</h3><p>Try another search or clear your filters.</p><button class="text-button" id="emptyClear" type="button">Clear search</button></div>
-              <div class="panel-footer"><span>Showing <strong id="showingCount">6</strong> of 48 tracked items</span><button class="text-button" id="loadMoreButton" type="button">Load more <span data-icon="arrow-right"></span></button></div>
+          <section class="insight-card revenue-card">
+            <div class="card-heading"><span class="eyebrow">GROUP REVENUE</span><span class="muted-mono">today</span></div>
+            <div class="revenue-list">
+              <div class="revenue-row"><span class="revenue-name"><i class="revenue-dot purple"></i> Snowy'sz</span><strong>R$1,615<small>17 sold</small></strong></div>
+              <div class="revenue-row"><span class="revenue-name"><i class="revenue-dot cyan"></i> Daily uploads</span><strong>R$1,045<small>11 sold</small></strong></div>
+              <div class="revenue-row"><span class="revenue-name"><i class="revenue-dot red"></i> Rainbow series</span><strong>R$570<small>6 sold</small></strong></div>
             </div>
-
-            <aside class="right-rail">
-              <section class="pulse-panel panel-card">
-                <div class="panel-heading compact"><div><div class="section-kicker">RIGHT NOW</div><h2>Sale pulse</h2></div><span class="live-dot-label"><i></i> LIVE</span></div>
-                <div class="pulse-chart" aria-label="Sale activity chart"><div class="chart-bars"><i style="height:32%"></i><i style="height:50%"></i><i style="height:40%"></i><i style="height:68%"></i><i style="height:55%"></i><i style="height:82%"></i><i style="height:62%"></i><i style="height:94%"></i><i style="height:71%"></i><i style="height:100%"></i><i style="height:78%"></i><i style="height:88%"></i></div><div class="chart-axis"><span>8 AM</span><span>NOW</span></div></div>
-                <div class="pulse-stat"><div><span class="pulse-stat-number">24</span><span class="pulse-stat-label">signals today</span></div><span class="trend positive"><span data-icon="trending-up"></span> 18%</span></div>
-                <div class="activity-list">
-                  <div class="activity-item"><div class="activity-art art-blue">✦</div><div class="activity-copy"><strong>Frostbound antlers</strong><span>Price dropped by 15 R$</span></div><time>12m</time></div>
-                  <div class="activity-item"><div class="activity-art art-lilac">❄</div><div class="activity-copy"><strong>Aurora visor</strong><span>Added to catalog</span></div><time>38m</time></div>
-                  <div class="activity-item"><div class="activity-art art-peach">◈</div><div class="activity-copy"><strong>Snow day hood</strong><span>3 people watching</span></div><time>1h</time></div>
-                </div>
-                <button class="full-width-button" id="activityButton" type="button">View activity <span data-icon="arrow-right"></span></button>
-              </section>
-
-              <section class="community-card panel-card">
-                <div class="community-card-top"><div class="community-avatar"><img src="https://tr.rbxcdn.com/180DAY-0839405d68e4a92414fe757f0b43f01d/150/150/Image/Webp/noFilter" alt="" /></div><span class="verified-badge" data-icon="check"></span></div>
-                <div class="section-kicker">THE COMMUNITY</div><h2>Built for the<br /><span>Snowy'sz circle.</span></h2>
-                <p>“feel free to join the group !!!”</p>
-                <div class="community-meta"><span><strong>6.9k</strong> members</span><span class="meta-divider"></span><span><strong>Daily</strong> uploads</span></div>
-                <button class="outline-button" id="communityButton" type="button">Open community <span data-icon="arrow-up-right"></span></button>
-              </section>
-            </aside>
+            <a class="group-link" href="https://www.roblox.com/communities/370302186/Snowysz#!/store" target="_blank" rel="noreferrer">OPEN GROUP STORE <span data-icon="arrow-up-right"></span></a>
           </section>
-
-          <footer class="page-footer"><span><span class="footer-snow">✦</span> Snowy’sz UGC tracker</span><span>Made for the drop-obsessed <span class="footer-heart">♥</span></span></footer>
-        </div>
+        </aside>
       </main>
+
+      <footer class="footer-bar"><span><span class="footer-mark">✦</span> SNOWY'SZ UGC TRACKER</span><span>ROBLOX COMMUNITY 370302186 · <a href="https://www.roblox.com/communities/370302186/Snowysz#!/about" target="_blank" rel="noreferrer">VIEW GROUP <span data-icon="arrow-up-right"></span></a></span></footer>
     </div>
-    <div class="toast" id="toast" role="status" aria-live="polite"><span class="toast-icon" data-icon="check-circle"></span><span id="toastMessage">Feed refreshed</span></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"><span data-icon="check"></span><span id="toastMessage">Feed synced</span></div>
     <script src="app.js"></script>
   </body>
 </html>
