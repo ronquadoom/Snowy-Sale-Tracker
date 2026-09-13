@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#09090b" />
+    <meta name="description" content="Snowy'sz live UGC sale feed." />
+    <title>Snowy'sz · Live Feed</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-frame">
+      <header class="topbar">
+        <div class="live-title">
+          <span class="status-dot" aria-hidden="true"></span>
+          <h1>Live Feed</h1>
+          <button class="connection-pill waiting" id="connectionToggle" type="button" aria-pressed="false" title="Import your Roblox Revenue › Sales CSV"><span data-icon="upload"></span><b id="connectionLabel">CSV REQUIRED</b></button>
+        </div>
+        <div class="top-meta">
+          <button class="revenue-trigger" id="revenueTrigger" type="button" aria-expanded="false"><span>REVENUE</span><span data-icon="chevron-right"></span></button>
+          <span class="group-mark"><span class="mini-snow">✦</span> SNOWY'SZ</span>
+          <span class="entry-count"><strong id="entryCount">0</strong> / <span id="totalEntries">0</span> verified sales</span>
+        </div>
+        <div class="revenue-menu" id="revenueMenu" hidden>
+          <div class="revenue-primary">
+            <button class="revenue-nav-item active" type="button"><span>Revenue</span><span data-icon="chevron-right"></span></button>
+            <button class="revenue-nav-item" type="button">Members</button>
+            <button class="revenue-nav-item" type="button">Roles <b>New</b></button>
+            <button class="revenue-nav-item" type="button">Content Moderation</button>
+            <button class="revenue-nav-item" type="button">Affiliates <span data-icon="chevron-right"></span></button>
+          </div>
+          <div class="revenue-secondary">
+            <button type="button">Summary</button>
+            <button class="selected" id="salesNavItem" type="button">Sales</button>
+            <button type="button">Publishing Advance</button>
+            <button type="button">Rebates</button>
+            <button type="button">Payouts</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="stats-bar" aria-label="Live sales stats">
+        <div class="stat-block accent-stat">
+          <span class="stat-icon" data-icon="bar-chart"></span>
+          <div><span class="stat-label">NON-LIMITED ITEMS</span><strong id="salesCount">59</strong></div>
+        </div>
+        <div class="stat-block accent-stat">
+          <span class="stat-icon" data-icon="trending-up"></span>
+          <div><span class="stat-label">VERIFIED SALES</span><strong id="verifiedSalesCount">0</strong></div>
+        </div>
+        <div class="stat-block">
+          <span class="stat-icon" data-icon="zap"></span>
+          <div><span class="stat-label">REAL REVENUE</span><strong id="realRevenue">R$—</strong></div>
+        </div>
+        <div class="stat-block last-sale">
+          <span class="stat-icon" data-icon="clock"></span>
+          <div><span class="stat-label">LAST VERIFIED SALE</span><strong id="lastSale">—</strong></div>
+        </div>
+        <button class="refresh-button" id="importButton" type="button"><span data-icon="upload"></span> IMPORT SALES CSV</button>
+        <input id="salesFileInput" type="file" accept=".csv,text/csv" hidden />
+      </section>
+
+      <section class="filter-bar" aria-label="Feed filters">
+        <div class="filter-scroll" id="filterScroll">
+          <button class="feed-filter" data-filter="all" type="button">All <b>0</b></button>
+          <button class="feed-filter active" data-filter="nonlimited" type="button">NON-LIMITED <b>0</b></button>
+          <button class="feed-filter" data-filter="limited" type="button">LIMITEDS <b>0</b></button>
+          <button class="feed-filter" data-filter="head" type="button">HEAD ACCESSORIES <b>0</b></button>
+          <button class="feed-filter" data-filter="face" type="button">FACE / EMOTES <b>0</b></button>
+          <button class="feed-filter" data-filter="sparkle" type="button">SPARKLE SERIES <b>0</b></button>
+          <button class="feed-filter" data-filter="skybox" type="button">SKYBOX ITEMS <b>0</b></button>
+        </div>
+        <label class="feed-search" for="searchInput"><span data-icon="search"></span><input id="searchInput" type="search" placeholder="Search feed" autocomplete="off" /></label>
+      </section>
+
+      <main class="feed-layout">
+        <section class="feed-column" aria-labelledby="feedHeading">
+          <div class="feed-heading">
+            <div><span class="eyebrow" id="feedEyebrow">SNOWY'SZ / REVENUE › SALES</span><h2 id="feedHeading">Verified sales</h2></div>
+            <div class="feed-heading-meta"><span class="sales-source"><span>REVENUE</span><b>›</b><strong>SALES</strong></span><span class="live-clock"><i></i> verified source</span></div>
+          </div>
+          <div class="sale-list" id="saleList"></div>
+          <div class="no-results" id="noResults"><span data-icon="upload"></span><strong id="noResultsTitle">No verified sales loaded</strong><p id="noResultsText">Export Sales of Goods from Roblox Revenue › Sales, then import the CSV here.</p><button class="empty-import-button" id="emptyImportButton" type="button">IMPORT ROBLOX SALES CSV</button></div>
+          <div class="feed-footer"><span>Showing <b id="showingCount">0</b> of <span id="filteredTotal">0</span> verified sales</span><button id="loadMoreButton" type="button" hidden>LOAD MORE <span data-icon="chevron-down"></span></button></div>
+        </section>
+
+        <aside class="insights-rail">
+          <section class="insight-card pace-card">
+            <div class="card-heading"><span class="eyebrow">SESSION PACE</span><span class="muted-mono">last 10 min</span></div>
+            <div class="pace-grid"><div><span>Rate</span><strong id="paceRate">—</strong></div><div><span>Avg Order</span><strong id="averageOrder">R$—</strong></div></div>
+            <div class="pace-graph is-empty" id="paceGraph" aria-label="Sales pace for the last ten minutes"><span class="graph-empty">Import verified sales to plot pace</span></div>
+            <div class="graph-axis"><span>10m ago</span><span>now</span></div>
+          </section>
+
+          <section class="insight-card top-items-card">
+            <div class="card-heading"><span class="eyebrow">TOP NON-LIMITED ITEMS</span><span class="muted-mono">tracking</span></div>
+            <div class="top-items" id="topItems"></div>
+          </section>
+
+          <section class="insight-card revenue-card">
+            <div class="card-heading"><span class="eyebrow">GROUP REVENUE</span><span class="muted-mono">today</span></div>
+            <div class="revenue-list" id="revenueList"><div class="rail-empty">No verified revenue loaded</div></div>
+            <a class="group-link" href="https://www.roblox.com/communities/370302186/Snowysz#!/store" target="_blank" rel="noreferrer">OPEN GROUP STORE <span data-icon="arrow-up-right"></span></a>
+          </section>
+        </aside>
+      </main>
+
+      <footer class="footer-bar"><span><span class="footer-mark">✦</span> SNOWY'SZ UGC TRACKER</span><span>ROBLOX COMMUNITY 370302186 · <a href="https://www.roblox.com/communities/370302186/Snowysz#!/about" target="_blank" rel="noreferrer">VIEW GROUP <span data-icon="arrow-up-right"></span></a></span></footer>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"><span data-icon="check"></span><span id="toastMessage">Feed synced</span></div>
+    <script src="catalog-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
