@@ -28,7 +28,7 @@
       <section class="stats-bar" aria-label="Live sales stats">
         <div class="stat-block accent-stat">
           <span class="stat-icon" data-icon="bar-chart"></span>
-          <div><span class="stat-label">TRACKED ITEMS</span><strong id="salesCount">141</strong></div>
+          <div><span class="stat-label">NON-LIMITED ITEMS</span><strong id="salesCount">59</strong></div>
         </div>
         <div class="stat-block accent-stat">
           <span class="stat-icon" data-icon="trending-up"></span>
@@ -47,8 +47,8 @@
 
       <section class="filter-bar" aria-label="Feed filters">
         <div class="filter-scroll" id="filterScroll">
-          <button class="feed-filter active" data-filter="all" type="button">All <b>141</b></button>
-          <button class="feed-filter" data-filter="cheap" type="button">CHEAP ITEMS <b>0</b></button>
+          <button class="feed-filter" data-filter="all" type="button">All <b>141</b></button>
+          <button class="feed-filter active" data-filter="nonlimited" type="button">NON-LIMITED <b>59</b></button>
           <button class="feed-filter" data-filter="limited" type="button">LIMITEDS <b>0</b></button>
           <button class="feed-filter" data-filter="head" type="button">HEAD ACCESSORIES <b>0</b></button>
           <button class="feed-filter" data-filter="face" type="button">FACE / EMOTES <b>0</b></button>
@@ -61,12 +61,12 @@
       <main class="feed-layout">
         <section class="feed-column" aria-labelledby="feedHeading">
           <div class="feed-heading">
-            <div><span class="eyebrow">SNOWY'SZ / SALE EVENTS</span><h2 id="feedHeading">Latest sales</h2></div>
+            <div><span class="eyebrow" id="feedEyebrow">SNOWY'SZ / NON-LIMITED SALES</span><h2 id="feedHeading">Latest sales</h2></div>
             <span class="live-clock"><i></i> polling every 30s</span>
           </div>
           <div class="sale-list" id="saleList"></div>
           <div class="no-results" id="noResults" hidden><span data-icon="search-x"></span><strong>No matching sales</strong><p>Try another filter or search term.</p></div>
-          <div class="feed-footer"><span>Showing <b id="showingCount">9</b> of <span id="footerTotal">141</span> entries</span><button id="loadMoreButton" type="button">LOAD MORE <span data-icon="chevron-down"></span></button></div>
+          <div class="feed-footer"><span>Showing <b id="showingCount">9</b> of <span id="filteredTotal">59</span> entries</span><button id="loadMoreButton" type="button">LOAD MORE <span data-icon="chevron-down"></span></button></div>
         </section>
 
         <aside class="insights-rail">
@@ -78,7 +78,7 @@
           </section>
 
           <section class="insight-card top-items-card">
-            <div class="card-heading"><span class="eyebrow">TODAY'S TOP ITEMS</span><span class="muted-mono">17 sold</span></div>
+            <div class="card-heading"><span class="eyebrow">TOP NON-LIMITED ITEMS</span><span class="muted-mono">tracking</span></div>
             <div class="top-items" id="topItems"></div>
           </section>
 

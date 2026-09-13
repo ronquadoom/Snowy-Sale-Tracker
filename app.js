@@ -80,7 +80,7 @@ function itemFromLink(entry, index) {
 
 const feedItems = assetLinks.map(itemFromLink);
 const totalEntries = feedItems.length;
-const state = { filter: 'all', query: '', showAll: false, connected: true };
+const state = { filter: 'nonlimited', query: '', showAll: false, connected: true };
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
@@ -95,6 +95,7 @@ function showToast(message) {
 function filterCounts() {
   return {
     all: totalEntries,
+    nonlimited: feedItems.filter((item) => !item.limited).length,
     cheap: feedItems.filter((item) => item.cheap).length,
     limited: feedItems.filter((item) => item.limited).length,
     head: feedItems.filter((item) => item.category === 'head').length,
@@ -107,8 +108,8 @@ function filterCounts() {
 function updateCounts() {
   const counts = filterCounts();
   $('#totalEntries').textContent = totalEntries;
-  $('#footerTotal').textContent = totalEntries;
-  $('#salesCount').textContent = totalEntries;
+  $('#filteredTotal').textContent = counts.nonlimited;
+  $('#salesCount').textContent = counts.nonlimited;
   $$('.feed-filter').forEach((button) => {
     const count = button.querySelector('b');
     if (count) count.textContent = counts[button.dataset.filter] ?? 0;
@@ -119,6 +120,7 @@ function matches(item) {
   const q = state.query.toLowerCase();
   const searchMatch = !q || `${item.name} ${item.category} ${item.buyer}`.toLowerCase().includes(q);
   let filterMatch = true;
+  if (state.filter === 'nonlimited') filterMatch = !item.limited;
   if (state.filter === 'cheap') filterMatch = item.cheap;
   if (state.filter === 'limited') filterMatch = item.limited;
   if (state.filter === 'head') filterMatch = item.category === 'head';
@@ -140,7 +142,7 @@ function saleMarkup(item, index) {
   return `<article class="sale-row ${item.hot ? 'hot' : ''}" style="animation-delay:${index * 18}ms" data-item-url="${item.url}" tabindex="0" role="link" aria-label="Open ${item.name} on Roblox">
     <div class="sale-thumb" style="--thumb-color:${item.color};--thumb-glow:${item.glow}">${thumbMarkup(item)}</div>
     <div class="sale-main">
-      <div class="sale-title-line"><strong>${item.name}</strong><span class="asset-tag">${item.type}</span>${item.flag ? `<span class="new-tag">${item.flag}</span>` : ''}</div>
+      <div class="sale-title-line"><strong>${item.name}</strong><span class="asset-tag">${item.type}</span><span class="market-tag ${item.limited ? 'limited-tag' : 'nonlimited-tag'}">${item.limited ? 'LIMITED' : 'NON-LIMITED'}</span>${item.flag ? `<span class="new-tag">${item.flag}</span>` : ''}</div>
       <div class="sale-meta"><span class="source">Snowy'sz</span><span class="arrow">→</span><span class="buyer">${item.buyer}</span></div>
     </div>
     <div class="sale-value">+R$${item.amount}<small>${item.age}</small></div>
@@ -149,11 +151,14 @@ function saleMarkup(item, index) {
 
 function renderFeed() {
   const filtered = feedItems.filter(matches);
+  const feedLabels = { all: 'ALL ITEMS', nonlimited: 'NON-LIMITED SALES', limited: 'LIMITED ITEMS', cheap: 'CHEAP ITEMS', head: 'HEAD ACCESSORIES', face: 'FACE / EMOTES', sparkle: 'SPARKLE SERIES', skybox: 'SKYBOX ITEMS' };
+  $('#feedEyebrow').textContent = `SNOWY'SZ / ${feedLabels[state.filter] || 'SALE EVENTS'}`;
   const visible = state.showAll ? filtered : filtered.slice(0, 9);
   $('#saleList').innerHTML = visible.map(saleMarkup).join('');
   $('#saleList').hidden = visible.length === 0;
   $('#noResults').hidden = visible.length !== 0;
   $('#showingCount').textContent = visible.length;
+  $('#filteredTotal').textContent = filtered.length;
   $('#loadMoreButton').hidden = filtered.length <= 9;
   $('#loadMoreButton').innerHTML = state.showAll ? `SHOW LESS ${iconSvg('chevron-down')}` : `LOAD MORE ${iconSvg('chevron-down')}`;
   $('#entryCount').textContent = state.query || state.filter !== 'all' ? filtered.length : totalEntries;
@@ -162,7 +167,7 @@ function renderFeed() {
 }
 
 function renderTopItems() {
-  const top = [...feedItems].sort((a, b) => b.sales - a.sales).slice(0, 6);
+  const top = feedItems.filter((item) => !item.limited).sort((a, b) => b.sales - a.sales).slice(0, 6);
   $('#topItems').innerHTML = top.map((item, index) => `<div class="top-item" data-item-url="${item.url}" tabindex="0" role="link">
     <span class="top-rank">${index + 1}</span><div class="top-thumb" style="--thumb-color:${item.color}">${thumbMarkup(item, true)}</div>
     <div class="top-item-copy"><strong>${item.name}</strong><span>SNOWY'SZ</span></div><div class="top-item-value">R$${item.amount}<small>${item.sales} sold</small></div>
@@ -225,7 +230,7 @@ $('#refreshButton').addEventListener('click', () => {
   icon.classList.add('spinning');
   setTimeout(() => icon.classList.remove('spinning'), 650);
   $('#lastSale').textContent = 'now';
-  showToast(`Feed synced · ${totalEntries} entries checked`);
+  showToast(`Feed synced · ${filterCounts().nonlimited} non-limited items tracked`);
   loadThumbnails();
 });
 
