@@ -40,6 +40,7 @@ h1 { margin: 0; color: #f5f5f6; font-size: 23px; font-weight: 800; letter-spacin
 .connection-pill svg { stroke-width: 1.7; }
 .connection-pill.paused, .connection-pill.waiting { color: #aaa6a0; border-color: #4a4033; background: rgba(79, 60, 33, .22); }
 .connection-pill.loaded { color: #59cfaf; border-color: #235b4f; background: rgba(24, 74, 61, .24); }
+.connection-pill.error { color: #f0a05f; border-color: #71422a; background: rgba(99, 52, 26, .24); }
 .connection-pill.paused + * { color: var(--muted); }
 .top-meta { display: flex; align-items: center; gap: 25px; color: #8b8990; font-family: var(--mono); font-size: 12px; letter-spacing: .25px; }
 .group-mark { display: inline-flex; align-items: center; gap: 7px; color: #a8a6ad; font-size: 10px; letter-spacing: .85px; }

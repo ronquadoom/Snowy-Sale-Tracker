@@ -72,6 +72,7 @@ const catalogNonLimitedCount = catalogItems.filter((item) => !item.limited).leng
 const state = { filter: 'nonlimited', query: '', showAll: false };
 let verifiedSales = loadSavedSales();
 let salesSource = verifiedSales.length ? 'csv' : 'none';
+let liveError = '';
 let livePollStarted = false;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -382,17 +383,28 @@ function renderRevenue() {
 async function pollLiveSales(showNotice = false) {
   try {
     const response = await fetch('/api/sales', { cache: 'no-store' });
-    if (!response.ok) return false;
-    const payload = await response.json();
-    if (!payload.configured || !Array.isArray(payload.sales)) return false;
+    const payload = await response.json().catch(() => ({}));
+    if (!payload.configured) return false;
+    if (!response.ok || payload.connected === false || !Array.isArray(payload.sales)) {
+      const previousError = liveError;
+      liveError = payload.message || 'Live sales API is unavailable.';
+      if (showNotice && liveError !== previousError) showToast(liveError);
+      if (salesSource === 'none') renderAll();
+      return false;
+    }
     const before = verifiedSales.map((sale) => `${sale.id}:${sale.date}:${sale.revenue}`).join('|');
     const after = payload.sales.map((sale) => `${sale.id}:${sale.date}:${sale.revenue}`).join('|');
     verifiedSales = payload.sales;
     salesSource = 'live';
+    liveError = '';
     renderAll();
     if (showNotice && before !== after) showToast(`Live feed updated · ${verifiedSales.length} recent sales`);
     return true;
   } catch (error) {
+    if (salesSource === 'none') {
+      liveError = 'Live API is not reachable from this deployment.';
+      renderAll();
+    }
     return false;
   }
 }
@@ -412,11 +424,14 @@ function renderAll() {
   renderRevenue();
   const hasData = verifiedSales.length > 0;
   const live = salesSource === 'live';
+  const apiError = !hasData && !live && Boolean(liveError);
   const connection = $('#connectionToggle');
-  connection.classList.toggle('waiting', !hasData && !live);
+  connection.classList.toggle('waiting', !hasData && !live && !apiError);
   connection.classList.toggle('loaded', hasData || live);
+  connection.classList.toggle('error', apiError);
   connection.setAttribute('aria-pressed', String(hasData || live));
-  $('#connectionLabel').textContent = live ? 'LIVE API' : hasData ? 'CSV LOADED' : 'CSV REQUIRED';
+  $('#connectionLabel').textContent = live ? 'LIVE API' : hasData ? 'CSV LOADED' : apiError ? 'API ERROR' : 'CSV REQUIRED';
+  connection.title = liveError || 'Import your Roblox Revenue › Sales CSV';
   connection.querySelector('[data-icon]').innerHTML = iconSvg(live ? 'radio' : hasData ? 'check' : 'upload');
   document.querySelector('.status-dot').style.background = live ? 'var(--green)' : hasData ? 'var(--cyan)' : 'var(--muted-2)';
 }

@@ -31,5 +31,11 @@ Without live credentials configured, the app stays in `CSV REQUIRED` mode and sh
    - `ROBLOX_GROUP_ID=370302186`
    - `ROBLOX_COOKIE` = the value of an authorized Roblox session cookie, without the `Cookie:` prefix
 4. Redeploy and open the site. The status changes to `LIVE API` only after Roblox returns real transactions.
+5. Verify the deployment before sharing it:
+   - Open `https://YOUR-RENDER-URL.onrender.com/api/health` and confirm `liveSalesConfigured: true`.
+   - Open `/api/sales` and confirm `configured: true`, `connected: true`, and a `sales` array.
+   - A `401` or `403` means the Roblox session is invalid or the account lacks the group's View group revenue permission.
+
+The dashboard polls once per minute. Roblox can still delay or rate-limit transaction reporting, so this is near-live rather than a guaranteed exact-one-minute delivery.
 
 Never put the Roblox cookie in this repository, browser JavaScript, screenshots, or chat. Use a dedicated authorized account, keep the variable private, and rotate it if it is ever exposed. If the variable is missing or Roblox denies access, the dashboard stays empty instead of showing placeholder sales.

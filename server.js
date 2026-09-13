@@ -52,27 +52,40 @@ function normalizeTransaction(transaction) {
   };
 }
 
+function normalizeCookie(rawValue) {
+  let value = String(rawValue || '').trim();
+  value = value.replace(/^cookie\s*:\s*/i, '').replace(/^['"]|['"]$/g, '');
+  if (/\.ROBLOSECURITY\s*=/i.test(value)) value = value.split(';')[0].split('=').slice(1).join('=').trim();
+  return value.replace(/^['"]|['"]$/g, '').trim();
+}
+
 async function getLiveSales() {
-  if (!process.env.ROBLOX_COOKIE) {
-    return { configured: false, sales: [], message: 'ROBLOX_COOKIE is not configured on the server.' };
+  const cookieValue = normalizeCookie(process.env.ROBLOX_COOKIE);
+  if (!cookieValue) {
+    return { configured: false, connected: false, sales: [], message: 'ROBLOX_COOKIE is not configured on the server.' };
   }
 
   const query = new URLSearchParams({ transactionType: 'Sale', limit: '100', sortOrder: 'Desc' });
   const response = await fetch(`${ROBLOX_TRANSACTIONS_URL}?${query}`, {
     headers: {
       accept: 'application/json',
+      'user-agent': 'SnowyszLiveSalesTracker/1.0',
       // Keep the session secret on the server. It is never sent to the browser.
-      cookie: `.ROBLOSECURITY=${process.env.ROBLOX_COOKIE}`,
+      cookie: `.ROBLOSECURITY=${cookieValue}`,
     },
   });
 
   if (!response.ok) {
-    return { configured: true, sales: [], message: `Roblox returned HTTP ${response.status}.` };
+    const message = response.status === 401 || response.status === 403
+      ? 'Roblox rejected the session or the account cannot view group revenue.'
+      : `Roblox returned HTTP ${response.status}.`;
+    return { configured: true, connected: false, sales: [], robloxStatus: response.status, message };
   }
 
   const payload = await response.json();
   return {
     configured: true,
+    connected: true,
     sales: Array.isArray(payload.data) ? payload.data.map(normalizeTransaction).filter((sale) => sale.assetId || sale.assetName) : [],
     fetchedAt: new Date().toISOString(),
   };
@@ -87,7 +100,7 @@ async function handleApi(req, res, url) {
       const result = await getLiveSales();
       return json(res, result.configured && result.message ? 502 : 200, result);
     } catch (error) {
-      return json(res, 502, { configured: true, sales: [], message: 'Unable to reach Roblox live sales right now.' });
+      return json(res, 502, { configured: true, connected: false, sales: [], message: 'Unable to reach Roblox live sales right now.' });
     }
   }
   return json(res, 404, { error: 'Not found' });
